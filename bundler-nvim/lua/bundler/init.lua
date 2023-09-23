@@ -1,7 +1,3 @@
---- types.
-
----@class bundler-nvim
-
 --- utils.
 local au = vim.api.nvim_create_autocmd
 local packadd = function(path)
