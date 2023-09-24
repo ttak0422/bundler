@@ -33,7 +33,7 @@ pub struct PluginConfig<'a> {
 impl Default for PluginConfig<'_> {
     fn default() -> Self {
         PluginConfig {
-            lang: Language::Lua,
+            lang: Language::default(),
             code: "",
             args: &Value::Null,
         }
