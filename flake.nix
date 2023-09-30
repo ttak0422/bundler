@@ -11,10 +11,12 @@
     };
     pre-commit-hooks = {
       url = "github:cachix/pre-commit-hooks.nix";
-      inputs.flake-compat.follows = "flake-compat";
-      inputs.flake-utils.follows = "flake-utils";
-      inputs.nixpkgs.follows = "nixpkgs";
-      inputs.nixpkgs-stable.follows = "nixpkgs";
+      inputs = {
+        flake-compat.follows = "flake-compat";
+        flake-utils.follows = "flake-utils";
+        nixpkgs.follows = "nixpkgs";
+        nixpkgs-stable.follows = "nixpkgs";
+      };
     };
     fenix = {
       url = "github:nix-community/fenix";
@@ -22,16 +24,18 @@
     };
     crane = {
       url = "github:ipetkov/crane";
-      inputs.flake-utils.follows = "flake-utils";
-      inputs.nixpkgs.follows = "nixpkgs";
-      inputs.flake-compat.follows = "flake-compat";
-      inputs.rust-overlay.follows = "";
+      inputs = {
+        flake-utils.follows = "flake-utils";
+        nixpkgs.follows = "nixpkgs";
+        flake-compat.follows = "flake-compat";
+        rust-overlay.follows = "";
+      };
     };
   };
 
-  outputs = inputs@{ flake-parts, crane, ... }:
+  outputs = inputs@{ flake-parts, crane, pre-commit-hooks, ... }:
     flake-parts.lib.mkFlake { inherit inputs; }
-    ({ self, flake-parts-lib, withSystem, ... }:
+    ({ flake-parts-lib, withSystem, ... }:
       let
         inherit (flake-parts-lib) importApply;
         flakeModules = {
@@ -40,7 +44,7 @@
 
       in {
         systems = [ "x86_64-linux" "aarch64-linux" "aarch64-darwin" ];
-        perSystem = { self', system, pkgs, lib, config, flake-parts-lib, ... }:
+        perSystem = { system, pkgs, lib, ... }:
           let
             inherit (import ./nix/bundler.nix { inherit system pkgs crane; })
               bundler toolchain;
@@ -55,6 +59,20 @@
             packages = {
               bundler = bundler.package;
               bundler-nvim = bundler-nvim.package;
+            };
+            checks = {
+              pre-commit-check = pre-commit-hooks.lib.${system}.run {
+                src = ./.;
+                hooks = {
+                  deadnix.enable = true;
+                  stylua.enable = true;
+                  nixfmt.enable = true;
+                  statix.enable = true;
+                  # WIP
+                  # rustfmt.enable = true;
+                };
+              };
+              inherit (bundler) clippy nextest package;
             };
             devShells.default = pkgs.mkShell {
               packages = [ toolchain pkgs.rust-analyzer-nightly ]

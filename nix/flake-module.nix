@@ -1,9 +1,9 @@
 { withSystem, ... }:
-{ config, pkgs, lib, flake-parts-lib, ... }:
+{ config, lib, flake-parts-lib, ... }:
 let inherit (flake-parts-lib) mkPerSystemOption;
 in {
   options = {
-    perSystem = mkPerSystemOption ({ self', system, pkgs, ... }:
+    perSystem = mkPerSystemOption ({ pkgs, ... }:
       let
         inherit (lib) types mkEnableOption mkOption;
         neovim = {
@@ -194,7 +194,8 @@ in {
           };
           lazyTime = mkOption {
             type = types.int;
-            description = "Time in milliseconds to wait before loading lazy plugins";
+            description =
+              "Time in milliseconds to wait before loading lazy plugins";
             default = 100;
           };
         };
@@ -212,7 +213,7 @@ in {
   };
 
   config = {
-    perSystem = { self', system, config, lib, pkgs, ... }:
+    perSystem = { system, config, lib, pkgs, ... }:
       let
         inherit (builtins) toJSON;
         inherit (lib) mapAttrs flatten;
@@ -242,12 +243,10 @@ in {
         # (package | startPluginConfig | optPluginConfig | bundleConfig) -> package[]
         extractExtraPackages = x:
           let
-            arg = if x ? extraPackages then
-              x.extraPackages
-            else if x ? plugins then
+            arg = x.extraPackages or (if x ? plugins then
               map extractExtraPackages x.plugins
             else
-              [ ];
+              [ ]);
             depends = if x ? depends then
               flatten (map extractExtraPackages x.depends)
             else

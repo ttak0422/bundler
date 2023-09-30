@@ -16,7 +16,7 @@ in rec {
   bundler = with craneLib; rec {
     commonArgs = {
       src = cleanCargoSource (path ./../bundler);
-      buildInputs = [ ] ++ optionals isDarwin
+      buildInputs = optionals isDarwin
         (with pkgs; [ libiconv darwin.apple_sdk.frameworks.Security ]);
       nativeBuildgInputs = [ ];
     };
