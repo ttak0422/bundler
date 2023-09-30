@@ -192,6 +192,11 @@ in {
             description = "Bundles to install and load on demand";
             default = [ ];
           };
+          lazyTime = mkOption {
+            type = types.int;
+            description = "Time in milliseconds to wait before loading lazy plugins";
+            default = 100;
+          };
         };
       in {
         options.bundler-nvim = mkOption {
@@ -290,7 +295,7 @@ in {
                 -- ${name}
                 require("bundler").new({
                   root = "${cfgFiles}",
-                  lazy_time = 100,
+                  lazy_time = ${toString cfg.lazyTime},
                 })
                 EOF
               '';
