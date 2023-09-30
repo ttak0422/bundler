@@ -40,7 +40,7 @@
 
       in {
         systems = [ "x86_64-linux" "aarch64-linux" "aarch64-darwin" ];
-        perSystem = { self', system, pkgs, config, flake-parts-lib, ... }:
+        perSystem = { self', system, pkgs, lib, config, flake-parts-lib, ... }:
           let
             inherit (import ./nix/bundler.nix { inherit system pkgs crane; })
               bundler toolchain;
@@ -55,6 +55,12 @@
             packages = {
               bundler = bundler.package;
               bundler-nvim = bundler-nvim.package;
+            };
+            devShells.default = pkgs.mkShell {
+              packages = [ toolchain pkgs.rust-analyzer-nightly ]
+                ++ (with pkgs; lib.optional stdenv.isDarwin libiconv);
+              inputsFrom = [ bundler ];
+              RUST_BACKTRACE = "full";
             };
           };
         flake = { inherit flakeModules; };
