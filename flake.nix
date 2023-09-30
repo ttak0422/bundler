@@ -3,8 +3,6 @@
 
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
-    #systems.url = "github:nix-systems/default";
-
     flake-parts.url = "github:hercules-ci/flake-parts";
     flake-utils.url = "github:numtide/flake-utils";
     flake-compat = {
@@ -32,7 +30,8 @@
   };
 
   outputs = inputs@{ flake-parts, crane, ... }:
-    flake-parts.lib.mkFlake { inherit inputs; } ({ self, flake-parts-lib, withSystem, ... }:
+    flake-parts.lib.mkFlake { inherit inputs; }
+    ({ self, flake-parts-lib, withSystem, ... }:
       let
         inherit (flake-parts-lib) importApply;
         flakeModules = {
@@ -45,7 +44,8 @@
           let
             inherit (import ./nix/bundler.nix { inherit system pkgs crane; })
               bundler toolchain;
-            inherit (import ./nix/bundler-nvim.nix { inherit pkgs; }) bundler-nvim;
+            inherit (import ./nix/bundler-nvim.nix { inherit pkgs; })
+              bundler-nvim;
 
           in {
             _module.args.pkgs = import inputs.nixpkgs {
