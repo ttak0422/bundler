@@ -44,7 +44,7 @@
 
       in {
         systems = [ "x86_64-linux" "aarch64-linux" "aarch64-darwin" ];
-        perSystem = { system, pkgs, lib, ... }:
+        perSystem = { self', system, pkgs, lib, ... }:
           let
             inherit (import ./nix/bundler.nix { inherit system pkgs crane; })
               bundler toolchain;
@@ -75,6 +75,7 @@
               inherit (bundler) clippy nextest package;
             };
             devShells.default = pkgs.mkShell {
+              inherit (self'.checks.pre-commit-check) shellHook;
               packages = [ toolchain pkgs.rust-analyzer-nightly ]
                 ++ (with pkgs; lib.optional stdenv.isDarwin libiconv);
               inputsFrom = [ bundler ];
