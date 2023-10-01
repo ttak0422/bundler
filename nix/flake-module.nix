@@ -217,7 +217,8 @@ in {
       let
         inherit (builtins) toJSON;
         inherit (lib)
-          mapAttrs flatten optionalString makeBinPath escapeShellArgs;
+          mapAttrs mapAttrs' nameValuePair flatten optionalString makeBinPath
+          escapeShellArgs;
         inherit (lib.lists) unique;
         inherit (pkgs) writeText;
         inherit (pkgs.stdenv) mkDerivation;
@@ -319,13 +320,17 @@ in {
               + extraPackagesArgs;
           });
 
-        mkApp = name: cfg: {
-          type = "app";
-          program = "${mkNvimPackage name cfg}/bin/nvim";
-        };
+        mkApp = name: cfg:
+          nameValuePair (if name == "default" then "nvim" else "nvim-${name}") {
+            type = "app";
+            program = "${mkNvimPackage name cfg}/bin/nvim";
+          };
       in {
         packages = mapAttrs mkNvimPackage config.bundler-nvim;
-        apps = mapAttrs mkApp config.bundler-nvim;
+
+        # `default` → .#nvim
+        # `foo` → .#nvim-foo
+        apps = mapAttrs' mkApp config.bundler-nvim;
       };
   };
 }
