@@ -26,4 +26,5 @@ pub mod file {
     pub static FILETYPES: &str = "filetype_keys";
     pub static COMMANDS: &str = "command_keys";
     pub static LAZYS: &str = "lazys";
+    pub static PAYLOAD: &str = "payload";
 }

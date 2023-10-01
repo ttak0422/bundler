@@ -270,24 +270,34 @@ fn unpack_load_options<'a>(
             PayloadOptVimPlugin::Package(_) => load_opt_acc,
             PayloadOptVimPlugin::OptPlugin(cfg) => {
                 let id = id_map.get(cfg.plugin.as_str()).unwrap();
-                let depends = cfg.depends.iter().fold(load_opt_acc.depends, |mut acc, p| {
-                    acc.entry(id).or_insert_with(Vec::new).push(match p {
-                        PayloadOptVimPlugin::Package(depend_package) => {
-                            id_map.get(depend_package.as_str()).unwrap()
-                        }
-                        PayloadOptVimPlugin::OptPlugin(depend_plugin_cfg) => {
-                            id_map.get(depend_plugin_cfg.plugin.as_str()).unwrap()
-                        }
-                    });
-                    acc
-                });
-                let depend_bundles = cfg.depend_bundles.iter().fold(
-                    load_opt_acc.depend_bundles,
-                    |mut acc, bundle_id| {
-                        acc.entry(id).or_insert_with(Vec::new).push(bundle_id);
+                let depends: HashMap<&str, Vec<&str>> = if cfg.depends.is_empty() {
+                    load_opt_acc.depends.entry(id).or_insert(Vec::new());
+                    load_opt_acc.depends
+                } else {
+                    cfg.depends.iter().fold(load_opt_acc.depends, |mut acc, p| {
+                        acc.entry(id).or_insert_with(Vec::new).push(match p {
+                            PayloadOptVimPlugin::Package(depend_package) => {
+                                id_map.get(depend_package.as_str()).unwrap()
+                            }
+                            PayloadOptVimPlugin::OptPlugin(depend_plugin_cfg) => {
+                                id_map.get(depend_plugin_cfg.plugin.as_str()).unwrap()
+                            }
+                        });
                         acc
-                    },
-                );
+                    })
+                };
+                let depend_bundles: HashMap<&str, Vec<&str>> = if cfg.depend_bundles.is_empty() {
+                    load_opt_acc.depend_bundles.entry(id).or_insert(Vec::new());
+                    load_opt_acc.depend_bundles
+                } else {
+                    cfg.depend_bundles.iter().fold(
+                        load_opt_acc.depend_bundles,
+                        |mut acc, bundle_id| {
+                            acc.entry(id).or_insert_with(Vec::new).push(bundle_id);
+                            acc
+                        },
+                    )
+                };
                 let modules = cfg
                     .modules
                     .iter()

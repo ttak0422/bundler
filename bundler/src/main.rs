@@ -26,7 +26,7 @@ fn main() {
     let payload = serde_json::from_str::<Payload>(&input_json_text).unwrap();
     let pack = unpack(&payload);
 
-    bundle(output_dir, pack).unwrap();
+    bundle(output_dir, &input_json_path, pack).unwrap();
 
     log::info!("bundle completed");
 }

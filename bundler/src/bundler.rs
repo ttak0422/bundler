@@ -299,7 +299,13 @@ fn bundle_load_options(root_dir: &str, load_opt: LoadingOptions) -> Result<()> {
     Ok(())
 }
 
-pub fn bundle(root_dir: &str, pack: Pack) -> Result<()> {
+fn bundle_stats(root_dir: &str, payload_path: &str) -> Result<()> {
+    let mut payload = File::create(String::from(root_dir) + "/" + file::PAYLOAD)?;
+    write!(payload, "return \"{}\"", payload_path)?;
+    Ok(())
+}
+
+pub fn bundle(root_dir: &str, payload_path: &str, pack: Pack) -> Result<()> {
     let bundled_pack = bundle_pack(pack)?;
 
     bundle_setup_dir(root_dir)?;
@@ -310,6 +316,7 @@ pub fn bundle(root_dir: &str, pack: Pack) -> Result<()> {
         bundled_pack.bundles,
     )?;
     bundle_load_options(root_dir, bundled_pack.load_opt)?;
+    bundle_stats(root_dir, payload_path)?;
 
     Ok(())
 }
