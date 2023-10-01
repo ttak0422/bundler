@@ -25,7 +25,7 @@ end
 M.setup_loader = function(self)
 	dofile(self.root .. "/startup")
 
-	for ev in pairs(dofile(self.root .. "/events")) do
+	for _, ev in ipairs(dofile(self.root .. "/event_keys")) do
 		au({ ev }, {
 			pattern = "*",
 			once = true,
@@ -34,7 +34,7 @@ M.setup_loader = function(self)
 			end,
 		})
 	end
-	for ft in pairs(dofile(self.root .. "/filetypes")) do
+	for _, ft in ipairs(dofile(self.root .. "/filetype_keys")) do
 		au({ "FileType" }, {
 			pattern = ft,
 			once = true,
@@ -43,7 +43,7 @@ M.setup_loader = function(self)
 			end,
 		})
 	end
-	for cmd in pairs(dofile(self.root .. "/commands")) do
+	for _, cmd in ipairs(dofile(self.root .. "/command_keys")) do
 		au({ "CmdUndefined" }, {
 			pattern = cmd,
 			once = true,
@@ -58,7 +58,7 @@ M.setup_loader = function(self)
 
 			local ok, ids = pcall(dofile, self.root .. "/modules/" .. mod_name)
 			if ok then
-				for id in pairs(ids) do
+				for _, id in ipairs(ids) do
 					self:load_plugin(id)
 				end
 			end
@@ -81,8 +81,8 @@ M.load_plugin = function(self, id)
 	if not self.loaded_plugins[id] then
 		self.loaded_plugins[id] = true
 		self:configure(id, true)
-		self:load_plugins(self.root .. "/depends" .. id)
-		self:load_plugins(self.root .. "/depend_bundles" .. id)
+		self:load_plugins(self.root .. "/depends/" .. id)
+		self:load_plugins(self.root .. "/depend_bundles/" .. id)
 		packadd(self.root .. "/plugin/" .. id)
 		self:load_plugins(self.root .. "/plugin/" .. id)
 		self:configure(id, false)
@@ -90,7 +90,7 @@ M.load_plugin = function(self, id)
 end
 
 M.load_plugins = function(self, path)
-	for p in pairs(dofile(path)) do
+	for _, p in ipairs(dofile(path)) do
 		self:load_plugin(p)
 	end
 end

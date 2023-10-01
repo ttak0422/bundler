@@ -295,7 +295,7 @@ in {
                 require("bundler").new({
                   root = "${cfgFiles}",
                   lazy_time = ${toString cfg.lazyTime},
-                })
+                }):setup_loader()
                 EOF
               '';
               packages.bundler-nvim = {
