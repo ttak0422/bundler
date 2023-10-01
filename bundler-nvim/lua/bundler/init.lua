@@ -84,7 +84,6 @@ M.load_plugin = function(self, id)
 		self:load_plugins(self.root .. "/depends/" .. id)
 		self:load_plugins(self.root .. "/depend_bundles/" .. id)
 		packadd(self.root .. "/plugin/" .. id)
-		self:load_plugins(self.root .. "/plugin/" .. id)
 		self:configure(id, false)
 	end
 end
