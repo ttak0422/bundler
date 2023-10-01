@@ -216,7 +216,7 @@ in {
     perSystem = { system, config, lib, pkgs, ... }:
       let
         inherit (builtins) toJSON;
-        inherit (lib) mapAttrs flatten;
+        inherit (lib) mapAttrs flatten optionalString makeBinPath;
         inherit (lib.lists) unique;
         inherit (pkgs) writeText;
         inherit (pkgs.stdenv) mkDerivation;
@@ -257,10 +257,15 @@ in {
           let
             startVimPluginPackages = [ bundler-nvim ]
               ++ unique (flatten (map extractVimPlugins cfg.startPlugins));
-
             optVimPluginPackages =
               let plugins = with cfg; startPlugins ++ optPlugins ++ bundles;
               in unique (flatten (map extractVimPlugins plugins));
+            normalizedStartVimPluginPackages =
+              map (p: { plugin = p; }) startVimPluginPackages;
+            normalizedOptVimPluginPackages = map (p: {
+              plugin = p;
+              optional = true;
+            }) optVimPluginPackages;
 
             extraPackages =
               let plugins = with cfg; startPlugins ++ optPlugins ++ bundles;
@@ -286,24 +291,30 @@ in {
                 ${bundler}/bin/bundler ${payload} $out
               '';
             };
-          in pkgs.wrapNeovim cfg.package {
+
+            extraPackagesArgs = optionalString (cfg.extraPackages != [ ])
+              ''--suffix PATH : "${makeBinPath cfg.extraPackages}"'';
+
+          in pkgs.wrapNeovimUnstable cfg.package
+          (pkgs.neovimUtils.makeNeovimConfig {
             inherit (cfg) withRuby withPython3 withNodeJs;
-            configure = {
-              customRC = ''
-                lua << EOF
-                -- ${name}
-                require("bundler").new({
-                  root = "${cfgFiles}",
-                  lazy_time = ${toString cfg.lazyTime},
-                }):setup_loader()
-                EOF
-              '';
-              packages.bundler-nvim = {
-                start = startVimPluginPackages;
-                opt = optVimPluginPackages;
-              };
-            };
-          };
+            customRC = ''
+              ${cfg.extraConfig}
+              lua << EOF
+              -- ${name}
+              print("${cfgFiles}")
+              require("bundler").new({
+                root = "${cfgFiles}",
+                lazy_time = ${toString cfg.lazyTime},
+              }):setup_loader()
+              EOF
+            '';
+            wrapRc = true;
+            wrapperArgs = extraPackagesArgs;
+            plugins = normalizedStartVimPluginPackages
+              ++ normalizedOptVimPluginPackages;
+          });
+
         mkApp = name: cfg: {
           type = "app";
           program = "${mkNvimPackage name cfg}/bin/nvim";
