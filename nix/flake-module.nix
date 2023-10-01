@@ -216,7 +216,8 @@ in {
     perSystem = { system, config, lib, pkgs, ... }:
       let
         inherit (builtins) toJSON;
-        inherit (lib) mapAttrs flatten optionalString makeBinPath;
+        inherit (lib)
+          mapAttrs flatten optionalString makeBinPath escapeShellArgs;
         inherit (lib.lists) unique;
         inherit (pkgs) writeText;
         inherit (pkgs.stdenv) mkDerivation;
@@ -269,7 +270,8 @@ in {
 
             extraPackages =
               let plugins = with cfg; startPlugins ++ optPlugins ++ bundles;
-              in unique (flatten (map extractExtraPackages plugins));
+              in unique (cfg.extraPackages
+                ++ (flatten (map extractExtraPackages plugins)));
 
             payload = writeText "payload.json" (toJSON {
               inherit cfg;
@@ -292,27 +294,29 @@ in {
               '';
             };
 
-            extraPackagesArgs = optionalString (cfg.extraPackages != [ ])
-              ''--suffix PATH : "${makeBinPath cfg.extraPackages}"'';
+            extraPackagesArgs = optionalString (extraPackages != [ ])
+              ''--suffix PATH : "${makeBinPath extraPackages}"'';
 
-          in pkgs.wrapNeovimUnstable cfg.package
-          (pkgs.neovimUtils.makeNeovimConfig {
-            inherit (cfg) withRuby withPython3 withNodeJs;
-            customRC = ''
-              ${cfg.extraConfig}
-              lua << EOF
-              -- ${name}
-              print("${cfgFiles}")
-              require("bundler").new({
-                root = "${cfgFiles}",
-                lazy_time = ${toString cfg.lazyTime},
-              }):setup_loader()
-              EOF
-            '';
-            wrapRc = true;
-            wrapperArgs = extraPackagesArgs;
-            plugins = normalizedStartVimPluginPackages
-              ++ normalizedOptVimPluginPackages;
+            neovimConfig = pkgs.neovimUtils.makeNeovimConfig {
+              inherit (cfg) withRuby withPython3 withNodeJs;
+              customRC = ''
+                ${cfg.extraConfig}
+                lua << EOF
+                -- ${name}
+                print("${cfgFiles}")
+                require("bundler").new({
+                  root = "${cfgFiles}",
+                  lazy_time = ${toString cfg.lazyTime},
+                }):setup_loader()
+                EOF
+              '';
+              wrapRc = true;
+              plugins = normalizedStartVimPluginPackages
+                ++ normalizedOptVimPluginPackages;
+            };
+          in pkgs.wrapNeovimUnstable cfg.package (neovimConfig // {
+            wrapperArgs = (escapeShellArgs neovimConfig.wrapperArgs) + " "
+              + extraPackagesArgs;
           });
 
         mkApp = name: cfg: {
