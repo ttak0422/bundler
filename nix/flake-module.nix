@@ -203,11 +203,7 @@ in {
         options.bundler-nvim = mkOption {
           description = "bundler-nvim configuration";
           type = with types;
-            attrsOf (submodule {
-              options = {
-                enable = mkEnableOption "bundler-nvim";
-              } // neovim // bundlerPlugin;
-            });
+            attrsOf (submodule { options = { } // neovim // bundlerPlugin; });
         };
       });
   };
