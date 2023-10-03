@@ -97,7 +97,7 @@ pub struct BundleConfig {
 
 #[derive(Debug, Default, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
-pub struct OboroConfig {
+pub struct BundlerConfig {
     pub start_plugins: Vec<StartVimPlugin>,
     pub opt_plugins: Vec<OptVimPlugin>,
     pub bundles: Vec<BundleConfig>,
@@ -117,7 +117,7 @@ pub struct Meta {
 #[derive(Debug, Default, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Payload {
-    pub cfg: OboroConfig,
+    pub cfg: BundlerConfig,
     pub meta: Meta,
 }
 
