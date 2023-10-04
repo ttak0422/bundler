@@ -311,7 +311,6 @@ in {
                 ${cfg.extraConfig}
                 lua << EOF
                 -- ${name}
-                print("${cfgFiles}")
                 require("bundler").new({
                   root = "${cfgFiles}",
                   lazy_time = ${toString cfg.lazyTime},
