@@ -19,7 +19,13 @@ in {
           };
           extraConfig = mkOption {
             type = types.lines;
-            description = "Extra configuration to add to top of init.vim";
+            description =
+              "Extra configuration (viml) to add to top of init.vim";
+            default = "";
+          };
+          extraLuaConfig = mkOption {
+            type = types.lines;
+            description = "Extra configuration (lua) to add to top of init.vim";
             default = "";
           };
           withNodeJs = mkEnableOption "withNodeJs" // {
@@ -308,9 +314,10 @@ in {
             neovimConfig = pkgs.neovimUtils.makeNeovimConfig {
               inherit (cfg) withRuby withPython3 withNodeJs;
               customRC = ''
+                " ${name}
                 ${cfg.extraConfig}
                 lua << EOF
-                -- ${name}
+                ${cfg.extraLuaConfig}
                 require("bundler").new({
                   root = "${cfgFiles}",
                   lazy_time = ${toString cfg.lazyTime},
