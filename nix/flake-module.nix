@@ -273,7 +273,7 @@ in {
             startVimPluginPackages = [ bundler-nvim ]
               ++ unique (flatten (map extractVimPlugins cfg.startPlugins));
             optVimPluginPackages =
-              let plugins = with cfg; startPlugins ++ optPlugins ++ bundles;
+              let plugins = with cfg; optPlugins ++ bundles;
               in unique (flatten (map extractVimPlugins plugins));
             normalizedStartVimPluginPackages =
               map (p: { plugin = p; }) startVimPluginPackages;
