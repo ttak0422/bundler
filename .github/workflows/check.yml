@@ -7,7 +7,7 @@ on:
     branches: [ "main" ]
 
 jobs:
-  build:
+  flake-check:
     strategy:
       matrix:
         os: [ ubuntu-latest ]
