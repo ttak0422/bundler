@@ -72,7 +72,7 @@
                   # rustfmt.enable = true;
                 };
               };
-              inherit (bundler) clippy nextest package;
+              inherit (bundler) clippy nextest;
             };
             devShells.default = pkgs.mkShell {
               inherit (self'.checks.pre-commit-check) shellHook;
