@@ -249,10 +249,7 @@ in {
               flatten (map extractVimPlugins x.plugins)
             else
               [ x ];
-            depends = if x ? depends then
-              flatten (map extractVimPlugins x.depends)
-            else
-              [ ];
+            depends = flatten (map extractVimPlugins (x.depends or [ ]));
           in arg ++ depends;
 
         # (package | startPluginConfig | optPluginConfig | bundleConfig) -> package[]
@@ -262,10 +259,7 @@ in {
               map extractExtraPackages x.plugins
             else
               [ ]);
-            depends = if x ? depends then
-              flatten (map extractExtraPackages x.depends)
-            else
-              [ ];
+            depends = flatten (map extractExtraPackages (x.depends or [ ]));
           in arg ++ depends;
 
         mkNvimPackage = name: cfg:
