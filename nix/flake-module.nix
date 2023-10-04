@@ -203,7 +203,18 @@ in {
         options.bundler-nvim = mkOption {
           description = "bundler-nvim configuration";
           type = with types;
-            attrsOf (submodule { options = { } // neovim // bundlerPlugin; });
+            attrsOf (submodule {
+              options = {
+                nvimPackageNamePrefix = mkOption {
+                  type = types.str;
+                  default = "bundler-nvim";
+                };
+                nvimAppNamePrefix = mkOption {
+                  type = types.str;
+                  default = "bundler-nvim";
+                };
+              } // neovim // bundlerPlugin;
+            });
         };
       });
   };
@@ -213,7 +224,7 @@ in {
       let
         inherit (builtins) toJSON;
         inherit (lib)
-          mapAttrs mapAttrs' nameValuePair flatten optionalString makeBinPath
+          mapAttrs' nameValuePair flatten optionalString makeBinPath
           escapeShellArgs;
         inherit (lib.lists) unique;
         inherit (pkgs) writeText;
@@ -315,18 +326,26 @@ in {
             wrapperArgs = (escapeShellArgs neovimConfig.wrapperArgs) + " "
               + extraPackagesArgs;
           });
+      in {
+        packages = mapAttrs' (name: cfg:
+          let
+            fullName = if name == "default" then
+              "${cfg.nvimPackageNamePrefix}"
+            else
+              "${cfg.nvimPackageNamePrefix}-${name}";
+          in nameValuePair fullName (mkNvimPackage name cfg))
+          config.bundler-nvim;
 
-        mkApp = name: cfg:
-          nameValuePair (if name == "default" then "nvim" else "nvim-${name}") {
+        apps = mapAttrs' (name: cfg:
+          let
+            fullName = if name == "default" then
+              "${cfg.nvimAppNamePrefix}"
+            else
+              "${cfg.nvimAppNamePrefix}-${name}";
+          in nameValuePair fullName {
             type = "app";
             program = "${mkNvimPackage name cfg}/bin/nvim";
-          };
-      in {
-        packages = mapAttrs mkNvimPackage config.bundler-nvim;
-
-        # `default` → .#nvim
-        # `foo` → .#nvim-foo
-        apps = mapAttrs' mkApp config.bundler-nvim;
+          }) config.bundler-nvim;
       };
   };
 }
