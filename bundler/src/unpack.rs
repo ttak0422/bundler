@@ -137,7 +137,7 @@ fn unpack_opt_plugin<'a>(
         }
         PayloadOptVimPlugin::OptPlugin(config) => {
             let id = id_map.get(config.plugin.as_str()).unwrap();
-            let depends = unpack_opt_plugins(id_map, config.depends.iter().collect());
+            let depends = unpack_opt_plugins(id_map, &config.depends.iter().collect());
             let startup = match &config.startup {
                 PayloadPluginConfig::Line(code) => PluginConfig {
                     lang: Language::Lua,
@@ -190,7 +190,7 @@ fn unpack_opt_plugin<'a>(
 
 fn unpack_opt_plugins<'a>(
     id_map: &HashMap<&'a str, &'a str>,
-    plugins: Vec<&'a PayloadOptVimPlugin>,
+    plugins: &Vec<&'a PayloadOptVimPlugin>,
 ) -> Vec<OptPlugin<'a>> {
     plugins
         .iter()
@@ -354,7 +354,7 @@ pub fn unpack<'a>(payload: &'a Payload) -> Pack<'a> {
         expand_all_opt_plugins(&payload.cfg.opt_plugins, &payload.cfg.bundles);
 
     let start_plugins = unpack_start_plugins(&id_map, &payload.cfg.start_plugins);
-    let opt_plugins = unpack_opt_plugins(&id_map, payload_opt_plugins.clone());
+    let opt_plugins = unpack_opt_plugins(&id_map, &payload_opt_plugins);
     let bundles = unpack_opt_bundles(&id_map, &payload.cfg.bundles);
     let load_opt = unpack_load_options(&id_map, payload_opt_plugins.clone());
 
