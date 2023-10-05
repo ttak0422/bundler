@@ -267,7 +267,7 @@ fn unpack_opt_bundles<'a>(
 }
 fn unpack_load_options<'a>(
     id_map: &HashMap<&'a str, &'a str>,
-    opt_plugins: Vec<&'a PayloadOptVimPlugin>,
+    opt_plugins: &Vec<&'a PayloadOptVimPlugin>,
 ) -> LoadingOptions<'a> {
     opt_plugins.iter().fold(
         LoadingOptions::default(),
@@ -356,7 +356,7 @@ pub fn unpack<'a>(payload: &'a Payload) -> Pack<'a> {
     let start_plugins = unpack_start_plugins(&id_map, &payload.cfg.start_plugins);
     let opt_plugins = unpack_opt_plugins(&id_map, &payload_opt_plugins);
     let bundles = unpack_opt_bundles(&id_map, &payload.cfg.bundles);
-    let load_opt = unpack_load_options(&id_map, payload_opt_plugins.clone());
+    let load_opt = unpack_load_options(&id_map, &payload_opt_plugins);
 
     Pack {
         start_plugins,
