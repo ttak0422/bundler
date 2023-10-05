@@ -126,17 +126,18 @@ fn unpack_start_plugins<'a>(
 fn unpack_opt_plugin<'a>(
     id_map: &HashMap<&'a str, &'a str>,
     plugin: &'a PayloadOptVimPlugin,
-) -> OptPlugin<'a> {
+) -> Vec<OptPlugin<'a>> {
     match plugin {
         PayloadOptVimPlugin::Package(package) => {
             let id = id_map.get(package.as_str()).unwrap();
-            OptPlugin {
+            vec![OptPlugin {
                 id,
                 ..Default::default()
-            }
+            }]
         }
         PayloadOptVimPlugin::OptPlugin(config) => {
             let id = id_map.get(config.plugin.as_str()).unwrap();
+            let depends = unpack_opt_plugins(id_map, config.depends.iter().collect());
             let startup = match &config.startup {
                 PayloadPluginConfig::Line(code) => PluginConfig {
                     lang: Language::Lua,
@@ -173,12 +174,16 @@ fn unpack_opt_plugin<'a>(
                     args: &detail.args,
                 },
             };
-            OptPlugin {
-                id,
-                startup,
-                pre_config,
-                config,
-            }
+            vec![
+                vec![OptPlugin {
+                    id,
+                    startup,
+                    pre_config,
+                    config,
+                }],
+                depends,
+            ]
+            .concat()
         }
     }
 }
@@ -189,7 +194,7 @@ fn unpack_opt_plugins<'a>(
 ) -> Vec<OptPlugin<'a>> {
     plugins
         .iter()
-        .map(|p| unpack_opt_plugin(id_map, p))
+        .flat_map(|p| unpack_opt_plugin(id_map, p))
         .collect::<Vec<_>>()
 }
 
