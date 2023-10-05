@@ -265,14 +265,25 @@ fn unpack_opt_bundles<'a>(
         .map(|b| unpack_opt_bundle(id_map, b))
         .collect::<Vec<_>>()
 }
-fn unpack_load_options<'a>(
+
+fn unpack_opt_plugin_load_options<'a>(
+    load_opt: LoadingOptions<'a>,
     id_map: &HashMap<&'a str, &'a str>,
     opt_plugins: &Vec<&'a PayloadOptVimPlugin>,
 ) -> LoadingOptions<'a> {
-    opt_plugins.iter().fold(
-        LoadingOptions::default(),
-        |mut load_opt_acc, plugin| match plugin {
-            PayloadOptVimPlugin::Package(_) => load_opt_acc,
+    opt_plugins
+        .iter()
+        .fold(load_opt, |mut load_opt_acc, plugin| match plugin {
+            PayloadOptVimPlugin::Package(p) => {
+                let id = id_map.get(p.as_str()).unwrap();
+                load_opt_acc.depends.entry(id).or_insert(Vec::new());
+                load_opt_acc.depend_bundles.entry(id).or_insert(Vec::new());
+                LoadingOptions {
+                    depends: load_opt_acc.depends,
+                    depend_bundles: load_opt_acc.depend_bundles,
+                    ..load_opt_acc
+                }
+            }
             PayloadOptVimPlugin::OptPlugin(cfg) => {
                 let id = id_map.get(cfg.plugin.as_str()).unwrap();
                 let depends: HashMap<&str, Vec<&str>> = if cfg.depends.is_empty() {
@@ -344,8 +355,103 @@ fn unpack_load_options<'a>(
                     ..load_opt_acc
                 }
             }
-        },
-    )
+        })
+}
+
+fn unpack_bundle_load_options<'a>(
+    load_opt: LoadingOptions<'a>,
+    id_map: &HashMap<&'a str, &'a str>,
+    bundles: &'a Vec<PayloadBundleConfig>,
+) -> LoadingOptions<'a> {
+    bundles.iter().fold(load_opt, |mut load_opt_acc, bundle| {
+        let id = bundle.name.as_str();
+        let depends: HashMap<&str, Vec<&str>> = if bundle.depends.is_empty() {
+            load_opt_acc.depends.entry(id).or_insert(Vec::new());
+            load_opt_acc.depends
+        } else {
+            bundle
+                .depends
+                .iter()
+                .fold(load_opt_acc.depends, |mut acc, p| {
+                    acc.entry(bundle.name.as_str())
+                        .or_insert_with(Vec::new)
+                        .push(match p {
+                            PayloadOptVimPlugin::Package(depend_package) => {
+                                load_opt_acc
+                                    .depend_bundles
+                                    .entry(bundle.name.as_str())
+                                    .or_insert_with(Vec::new)
+                                    .push(depend_package.as_str());
+                                id_map.get(depend_package.as_str()).unwrap()
+                            }
+                            PayloadOptVimPlugin::OptPlugin(depend_plugin_cfg) => {
+                                load_opt_acc
+                                    .depend_bundles
+                                    .entry(bundle.name.as_str())
+                                    .or_insert_with(Vec::new)
+                                    .push(depend_plugin_cfg.plugin.as_str());
+                                id_map.get(depend_plugin_cfg.plugin.as_str()).unwrap()
+                            }
+                        });
+                    acc
+                })
+        };
+        let depend_bundles: HashMap<&str, Vec<&str>> = if bundle.depend_bundles.is_empty() {
+            load_opt_acc
+                .depend_bundles
+                .entry(bundle.name.as_str())
+                .or_insert(Vec::new());
+            load_opt_acc.depend_bundles
+        } else {
+            bundle
+                .depend_bundles
+                .iter()
+                .fold(load_opt_acc.depend_bundles, |mut acc, bundle_id| {
+                    acc.entry(bundle.name.as_str())
+                        .or_insert_with(Vec::new)
+                        .push(bundle_id);
+                    acc
+                })
+        };
+        let modules = bundle
+            .modules
+            .iter()
+            .fold(load_opt_acc.modules, |mut acc, module| {
+                acc.entry(module).or_insert_with(Vec::new).push(id);
+                acc
+            });
+        let events = bundle
+            .events
+            .iter()
+            .fold(load_opt_acc.events, |mut acc, event| {
+                acc.entry(event).or_insert_with(Vec::new).push(id);
+                acc
+            });
+        let filetypes =
+            bundle
+                .filetypes
+                .iter()
+                .fold(load_opt_acc.filetypes, |mut acc, filetype| {
+                    acc.entry(filetype).or_insert_with(Vec::new).push(id);
+                    acc
+                });
+        let commands = bundle
+            .commands
+            .iter()
+            .fold(load_opt_acc.commands, |mut acc, command| {
+                acc.entry(command).or_insert_with(Vec::new).push(id);
+                acc
+            });
+        LoadingOptions {
+            depends,
+            depend_bundles,
+            modules,
+            events,
+            filetypes,
+            commands,
+            ..load_opt_acc
+        }
+    })
 }
 
 pub fn unpack<'a>(payload: &'a Payload) -> Pack<'a> {
@@ -356,7 +462,9 @@ pub fn unpack<'a>(payload: &'a Payload) -> Pack<'a> {
     let start_plugins = unpack_start_plugins(&id_map, &payload.cfg.start_plugins);
     let opt_plugins = unpack_opt_plugins(&id_map, &payload_opt_plugins);
     let bundles = unpack_opt_bundles(&id_map, &payload.cfg.bundles);
-    let load_opt = unpack_load_options(&id_map, &payload_opt_plugins);
+    let load_opt =
+        unpack_opt_plugin_load_options(LoadingOptions::default(), &id_map, &payload_opt_plugins);
+    let load_opt = unpack_bundle_load_options(load_opt, &id_map, &payload.cfg.bundles);
 
     Pack {
         start_plugins,
