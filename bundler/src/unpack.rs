@@ -276,40 +276,39 @@ fn unpack_opt_plugin_load_options<'a>(
         .fold(load_opt, |mut load_opt_acc, plugin| match plugin {
             PayloadOptVimPlugin::Package(p) => {
                 let id = id_map.get(p.as_str()).unwrap();
-                load_opt_acc.depends.entry(id).or_insert(Vec::new());
-                load_opt_acc.depend_bundles.entry(id).or_insert(Vec::new());
-                LoadingOptions {
-                    depends: load_opt_acc.depends,
-                    depend_bundles: load_opt_acc.depend_bundles,
-                    ..load_opt_acc
-                }
+                load_opt_acc.depends.entry(id).or_default();
+                load_opt_acc.depend_bundles.entry(id).or_default();
+                load_opt_acc
             }
             PayloadOptVimPlugin::OptPlugin(cfg) => {
                 let id = id_map.get(cfg.plugin.as_str()).unwrap();
+                load_opt_acc.depends.entry(id).or_default();
+                load_opt_acc.depend_bundles.entry(id).or_default();
                 let depends: HashMap<&str, Vec<&str>> = if cfg.depends.is_empty() {
-                    load_opt_acc.depends.entry(id).or_insert(Vec::new());
                     load_opt_acc.depends
                 } else {
                     cfg.depends.iter().fold(load_opt_acc.depends, |mut acc, p| {
-                        acc.entry(id).or_insert_with(Vec::new).push(match p {
-                            PayloadOptVimPlugin::Package(depend_package) => {
-                                id_map.get(depend_package.as_str()).unwrap()
-                            }
-                            PayloadOptVimPlugin::OptPlugin(depend_plugin_cfg) => {
-                                id_map.get(depend_plugin_cfg.plugin.as_str()).unwrap()
-                            }
-                        });
+                        let dependent_id = id_map
+                            .get(match p {
+                                PayloadOptVimPlugin::Package(depend_package) => {
+                                    depend_package.as_str()
+                                }
+                                PayloadOptVimPlugin::OptPlugin(depend_plugin_cfg) => {
+                                    depend_plugin_cfg.plugin.as_str()
+                                }
+                            })
+                            .unwrap();
+                        acc.entry(id).or_default().push(dependent_id);
                         acc
                     })
                 };
                 let depend_bundles: HashMap<&str, Vec<&str>> = if cfg.depend_bundles.is_empty() {
-                    load_opt_acc.depend_bundles.entry(id).or_insert(Vec::new());
                     load_opt_acc.depend_bundles
                 } else {
                     cfg.depend_bundles.iter().fold(
                         load_opt_acc.depend_bundles,
                         |mut acc, bundle_id| {
-                            acc.entry(id).or_insert_with(Vec::new).push(bundle_id);
+                            acc.entry(id).or_default().push(bundle_id);
                             acc
                         },
                     )
@@ -318,42 +317,46 @@ fn unpack_opt_plugin_load_options<'a>(
                     .modules
                     .iter()
                     .fold(load_opt_acc.modules, |mut acc, module| {
-                        acc.entry(module).or_insert_with(Vec::new).push(id);
+                        acc.entry(module).or_default().push(id);
                         acc
                     });
                 let events = cfg
                     .events
                     .iter()
                     .fold(load_opt_acc.events, |mut acc, event| {
-                        acc.entry(event).or_insert_with(Vec::new).push(id);
+                        acc.entry(event).or_default().push(id);
                         acc
                     });
                 let filetypes =
                     cfg.filetypes
                         .iter()
                         .fold(load_opt_acc.filetypes, |mut acc, filetype| {
-                            acc.entry(filetype).or_insert_with(Vec::new).push(id);
+                            acc.entry(filetype).or_default().push(id);
                             acc
                         });
                 let commands =
                     cfg.commands
                         .iter()
                         .fold(load_opt_acc.commands, |mut acc, command| {
-                            acc.entry(command).or_insert_with(Vec::new).push(id);
+                            acc.entry(command).or_default().push(id);
                             acc
                         });
                 if cfg.lazy {
                     load_opt_acc.lazys.push(id);
                 }
-                LoadingOptions {
-                    depends,
-                    depend_bundles,
-                    modules,
-                    events,
-                    filetypes,
-                    commands,
-                    ..load_opt_acc
-                }
+                unpack_opt_plugin_load_options(
+                    LoadingOptions {
+                        depends,
+                        depend_bundles,
+                        modules,
+                        events,
+                        filetypes,
+                        commands,
+                        ..load_opt_acc
+                    },
+                    id_map,
+                    &cfg.depends.iter().collect(),
+                )
             }
         })
 }
@@ -365,51 +368,36 @@ fn unpack_bundle_load_options<'a>(
 ) -> LoadingOptions<'a> {
     bundles.iter().fold(load_opt, |mut load_opt_acc, bundle| {
         let id = bundle.name.as_str();
+        load_opt_acc.depends.entry(id).or_default();
+        load_opt_acc.depend_bundles.entry(id).or_default();
         let depends: HashMap<&str, Vec<&str>> = if bundle.depends.is_empty() {
-            load_opt_acc.depends.entry(id).or_insert(Vec::new());
             load_opt_acc.depends
         } else {
             bundle
                 .depends
                 .iter()
                 .fold(load_opt_acc.depends, |mut acc, p| {
-                    acc.entry(bundle.name.as_str())
-                        .or_insert_with(Vec::new)
-                        .push(match p {
-                            PayloadOptVimPlugin::Package(depend_package) => {
-                                load_opt_acc
-                                    .depend_bundles
-                                    .entry(bundle.name.as_str())
-                                    .or_insert_with(Vec::new)
-                                    .push(depend_package.as_str());
-                                id_map.get(depend_package.as_str()).unwrap()
-                            }
+                    let dep_id = id_map
+                        .get(match p {
+                            PayloadOptVimPlugin::Package(depend_package) => depend_package.as_str(),
                             PayloadOptVimPlugin::OptPlugin(depend_plugin_cfg) => {
-                                load_opt_acc
-                                    .depend_bundles
-                                    .entry(bundle.name.as_str())
-                                    .or_insert_with(Vec::new)
-                                    .push(depend_plugin_cfg.plugin.as_str());
-                                id_map.get(depend_plugin_cfg.plugin.as_str()).unwrap()
+                                depend_plugin_cfg.plugin.as_str()
                             }
-                        });
+                        })
+                        .unwrap();
+                    acc.get_mut(id).unwrap().push(&dep_id);
                     acc
                 })
         };
         let depend_bundles: HashMap<&str, Vec<&str>> = if bundle.depend_bundles.is_empty() {
-            load_opt_acc
-                .depend_bundles
-                .entry(bundle.name.as_str())
-                .or_insert(Vec::new());
+            // load_opt_acc.depend_bundles.entry(id).or_default();
             load_opt_acc.depend_bundles
         } else {
             bundle
                 .depend_bundles
                 .iter()
                 .fold(load_opt_acc.depend_bundles, |mut acc, bundle_id| {
-                    acc.entry(bundle.name.as_str())
-                        .or_insert_with(Vec::new)
-                        .push(bundle_id);
+                    acc.entry(id).or_default().push(bundle_id);
                     acc
                 })
         };
@@ -417,14 +405,14 @@ fn unpack_bundle_load_options<'a>(
             .modules
             .iter()
             .fold(load_opt_acc.modules, |mut acc, module| {
-                acc.entry(module).or_insert_with(Vec::new).push(id);
+                acc.entry(module).or_default().push(id);
                 acc
             });
         let events = bundle
             .events
             .iter()
             .fold(load_opt_acc.events, |mut acc, event| {
-                acc.entry(event).or_insert_with(Vec::new).push(id);
+                acc.entry(event).or_default().push(id);
                 acc
             });
         let filetypes =
@@ -432,25 +420,29 @@ fn unpack_bundle_load_options<'a>(
                 .filetypes
                 .iter()
                 .fold(load_opt_acc.filetypes, |mut acc, filetype| {
-                    acc.entry(filetype).or_insert_with(Vec::new).push(id);
+                    acc.entry(filetype).or_default().push(id);
                     acc
                 });
         let commands = bundle
             .commands
             .iter()
             .fold(load_opt_acc.commands, |mut acc, command| {
-                acc.entry(command).or_insert_with(Vec::new).push(id);
+                acc.entry(command).or_default().push(id);
                 acc
             });
-        LoadingOptions {
-            depends,
-            depend_bundles,
-            modules,
-            events,
-            filetypes,
-            commands,
-            ..load_opt_acc
-        }
+        unpack_opt_plugin_load_options(
+            LoadingOptions {
+                depends,
+                depend_bundles,
+                modules,
+                events,
+                filetypes,
+                commands,
+                ..load_opt_acc
+            },
+            id_map,
+            &bundle.depends.iter().collect(),
+        )
     })
 }
 
