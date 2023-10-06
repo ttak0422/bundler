@@ -1,8 +1,17 @@
+---@class Logger
+local log = require("bundler.log")
+log.new({
+	plugin = "bundler-nvim",
+	level = "info",
+}, true)
+
+print(log)
 --- utils.
 local au = vim.api.nvim_create_autocmd
 local packadd = function(path)
 	local p = dofile(path)
 	if p ~= nil then
+		log.debug("[packadd]", p)
 		vim.cmd("packadd " .. p)
 	end
 end
@@ -23,9 +32,11 @@ M.new = function(opts)
 end
 
 M.setup_loader = function(self)
+	log.debug("[setup_loader] start", self.root)
 	dofile(self.root .. "/startup")
 
 	for _, ev in ipairs(dofile(self.root .. "/event_keys")) do
+		log.debug("ev:", ev)
 		au({ ev }, {
 			pattern = "*",
 			once = true,
@@ -35,6 +46,7 @@ M.setup_loader = function(self)
 		})
 	end
 	for _, ft in ipairs(dofile(self.root .. "/filetype_keys")) do
+		log.debug("ft:", ft)
 		au({ "FileType" }, {
 			pattern = ft,
 			once = true,
@@ -44,6 +56,7 @@ M.setup_loader = function(self)
 		})
 	end
 	for _, cmd in ipairs(dofile(self.root .. "/command_keys")) do
+		log.debug("cmd:", cmd)
 		au({ "CmdUndefined" }, {
 			pattern = cmd,
 			once = true,
@@ -67,24 +80,30 @@ M.setup_loader = function(self)
 	vim.defer_fn(function()
 		self:load_plugins(self.root .. "/lazys")
 	end, self.lazy_time)
+	log.debug("[setup_loader] end")
 end
 
 M.configure = function(self, id, is_pre)
+	log.debug(is_pre and "[pre_config]" or "[config]", "start", id)
 	local dir = is_pre and "/pre_config/" or "/config/"
 	local ok, err_msg = pcall(dofile, self.root .. dir .. id)
 	if not ok then
-		print("[" .. id .. "] configure error: " .. (err_msg or "-- no msg --"))
+		log.error(id, " configure error: ", err_msg or "-- no msg --")
 	end
+	log.debug(is_pre and "[pre_config]" or "[config]", "end", id)
 end
 
 M.load_plugin = function(self, id)
 	if not self.loaded_plugins[id] then
+		log.debug("[load_plugin] start", id)
 		self.loaded_plugins[id] = true
 		self:configure(id, true)
 		self:load_plugins(self.root .. "/depends/" .. id)
 		self:load_plugins(self.root .. "/depend_bundles/" .. id)
+		self:load_plugins(self.root .. "/plugins/" .. id)
 		packadd(self.root .. "/plugin/" .. id)
 		self:configure(id, false)
+		log.debug("[load_plugin] end", id)
 	end
 end
 
