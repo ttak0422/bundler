@@ -11,15 +11,15 @@ use crate::unpack::{Bundle, LoadingOptions, OptPlugin, Pack, PluginConfig, Start
 
 trait Bundleable
 where
-    Self: std::default::Default + std::cmp::Eq,
+    Self: std::default::Default + std::cmp::Eq + std::fmt::Debug,
 {
     fn id(&self) -> &str;
     fn modified(&self) -> bool;
     fn bundle(self, other: Self) -> Result<Self> {
         let self_modified = self.modified();
         let other_modified = other.modified();
-        if self_modified && other_modified {
-            bail!("Confliced {}.", self.id())
+        if self_modified && other_modified && self != other {
+            bail!("Confliced {}\n{:?}\n{:?}.", self.id(), self, other)
         } else if self_modified {
             Ok(self)
         } else {
