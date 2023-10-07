@@ -152,16 +152,22 @@ fn mk_plugin_config_code(cfg: &PluginConfig) -> String {
 }
 
 fn bundle_setup_dir(root_dir: &str) -> Result<()> {
-    create_dir(String::from(root_dir) + "/" + dir::PLUGIN)?;
-    create_dir(String::from(root_dir) + "/" + dir::PLUGINS)?;
-    create_dir(String::from(root_dir) + "/" + dir::PRE_CONFIG)?;
-    create_dir(String::from(root_dir) + "/" + dir::CONFIG)?;
-    create_dir(String::from(root_dir) + "/" + dir::DEPENDS)?;
-    create_dir(String::from(root_dir) + "/" + dir::DEPEND_BUNDLES)?;
-    create_dir(String::from(root_dir) + "/" + dir::MODULES)?;
-    create_dir(String::from(root_dir) + "/" + dir::EVENTS)?;
-    create_dir(String::from(root_dir) + "/" + dir::FILETYPES)?;
-    create_dir(String::from(root_dir) + "/" + dir::COMMANDS)?;
+    for d in [
+        dir::PLUGIN,
+        dir::PLUGINS,
+        dir::PRE_CONFIG,
+        dir::CONFIG,
+        dir::DEPENDS,
+        dir::DEPEND_BUNDLES,
+        dir::MODULES,
+        dir::EVENTS,
+        dir::FILETYPES,
+        dir::COMMANDS,
+    ]
+    .iter()
+    {
+        create_dir(String::from(root_dir) + "/" + d)?;
+    }
     Ok(())
 }
 
