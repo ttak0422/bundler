@@ -132,7 +132,7 @@ pub struct Payload {
 fn expand_opt_plugins<'a>(ps: &'a Vec<OptVimPlugin>) -> Vec<&'a OptVimPlugin> {
     ps.iter()
         .flat_map(|p| match p {
-            OptVimPlugin::Package(_) => vec![],
+            OptVimPlugin::Package(_) => vec![p],
             OptVimPlugin::OptPlugin(cfg) => [vec![p], expand_opt_plugins(&cfg.depends)].concat(),
         })
         .collect::<Vec<_>>()
