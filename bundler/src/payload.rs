@@ -1,14 +1,14 @@
 use serde::Deserialize;
 use serde_json::Value;
 
-#[derive(Debug, Default, Deserialize, Clone)]
+#[derive(Debug, Default, Deserialize, Clone, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct PluginPackage {
     pub id: String,
     pub package: String,
 }
 
-#[derive(Debug, Default, Deserialize, Clone)]
+#[derive(Debug, Default, Deserialize, Clone, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub enum ConfigLang {
     Vim,
@@ -17,7 +17,7 @@ pub enum ConfigLang {
     Fennel,
 }
 
-#[derive(Debug, Default, Deserialize, Clone)]
+#[derive(Debug, Default, Deserialize, Clone, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct PluginConfigDetail {
     pub lang: ConfigLang,
@@ -25,7 +25,7 @@ pub struct PluginConfigDetail {
     pub args: Value,
 }
 
-#[derive(Debug, Deserialize, Clone)]
+#[derive(Debug, Deserialize, Clone, PartialEq, Eq)]
 #[serde(untagged)]
 pub enum PluginConfig {
     Line(String),
@@ -39,21 +39,21 @@ impl Default for PluginConfig {
     }
 }
 
-#[derive(Debug, Deserialize, Clone)]
+#[derive(Debug, Deserialize, Clone, PartialEq, Eq)]
 #[serde(untagged)]
 pub enum StartVimPlugin {
     Package(String),
     StartPlugin(StartPluginConfig),
 }
 
-#[derive(Debug, Deserialize, Clone)]
+#[derive(Debug, Deserialize, Clone, PartialEq, Eq)]
 #[serde(untagged)]
 pub enum OptVimPlugin {
     Package(String),
     OptPlugin(OptPluginConfig),
 }
 
-#[derive(Debug, Default, Deserialize, Clone)]
+#[derive(Debug, Default, Deserialize, Clone, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct StartPluginConfig {
     pub plugin: String,
@@ -61,7 +61,7 @@ pub struct StartPluginConfig {
     pub extra_packages: Vec<String>,
 }
 
-#[derive(Debug, Default, Deserialize, Clone)]
+#[derive(Debug, Default, Deserialize, Clone, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct OptPluginConfig {
     pub plugin: String,
@@ -77,7 +77,7 @@ pub struct OptPluginConfig {
     pub lazy: bool,
 }
 
-#[derive(Debug, Default, Deserialize, Clone)]
+#[derive(Debug, Default, Deserialize, Clone, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct BundleConfig {
     pub name: String,
@@ -95,7 +95,7 @@ pub struct BundleConfig {
     pub lazy: bool,
 }
 
-#[derive(Debug, Default, Deserialize, Clone)]
+#[derive(Debug, Default, Deserialize, Clone, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct BundlerConfig {
     pub start_plugins: Vec<StartVimPlugin>,
@@ -107,14 +107,14 @@ pub struct BundlerConfig {
     pub with_ruby: bool,
 }
 
-#[derive(Debug, Default, Deserialize)]
+#[derive(Debug, Default, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct Meta {
     pub extra_packages: Vec<String>,
     pub id_map: Vec<PluginPackage>,
 }
 
-#[derive(Debug, Default, Deserialize)]
+#[derive(Debug, Default, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct Payload {
     pub cfg: BundlerConfig,
