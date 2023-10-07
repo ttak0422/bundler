@@ -2,6 +2,7 @@ use serde::Deserialize;
 use serde_json::Value;
 
 #[derive(Debug, Default, Deserialize, Clone, PartialEq, Eq)]
+#[cfg_attr(test, derive(Builder))]
 #[serde(rename_all = "camelCase")]
 pub struct PluginPackage {
     pub id: String,
@@ -18,6 +19,7 @@ pub enum ConfigLang {
 }
 
 #[derive(Debug, Default, Deserialize, Clone, PartialEq, Eq)]
+#[cfg_attr(test, derive(Builder))]
 #[serde(rename_all = "camelCase")]
 pub struct PluginConfigDetail {
     pub lang: ConfigLang,
@@ -54,6 +56,7 @@ pub enum OptVimPlugin {
 }
 
 #[derive(Debug, Default, Deserialize, Clone, PartialEq, Eq)]
+#[cfg_attr(test, derive(Builder))]
 #[serde(rename_all = "camelCase")]
 pub struct StartPluginConfig {
     pub plugin: String,
@@ -62,6 +65,7 @@ pub struct StartPluginConfig {
 }
 
 #[derive(Debug, Default, Deserialize, Clone, PartialEq, Eq)]
+#[cfg_attr(test, derive(Builder))]
 #[serde(rename_all = "camelCase")]
 pub struct OptPluginConfig {
     pub plugin: String,
@@ -78,6 +82,7 @@ pub struct OptPluginConfig {
 }
 
 #[derive(Debug, Default, Deserialize, Clone, PartialEq, Eq)]
+#[cfg_attr(test, derive(Builder))]
 #[serde(rename_all = "camelCase")]
 pub struct BundleConfig {
     pub name: String,
@@ -96,6 +101,7 @@ pub struct BundleConfig {
 }
 
 #[derive(Debug, Default, Deserialize, Clone, PartialEq, Eq)]
+#[cfg_attr(test, derive(Builder))]
 #[serde(rename_all = "camelCase")]
 pub struct BundlerConfig {
     pub start_plugins: Vec<StartVimPlugin>,
@@ -107,7 +113,8 @@ pub struct BundlerConfig {
     pub with_ruby: bool,
 }
 
-#[derive(Debug, Default, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Default, Deserialize, Clone, PartialEq, Eq)]
+#[cfg_attr(test, derive(Builder))]
 #[serde(rename_all = "camelCase")]
 pub struct Meta {
     pub extra_packages: Vec<String>,
@@ -115,6 +122,7 @@ pub struct Meta {
 }
 
 #[derive(Debug, Default, Deserialize, PartialEq, Eq)]
+#[cfg_attr(test, derive(Builder))]
 #[serde(rename_all = "camelCase")]
 pub struct Payload {
     pub cfg: BundlerConfig,
