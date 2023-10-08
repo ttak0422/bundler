@@ -109,7 +109,11 @@ fn bundle_pack(pack: Pack) -> Result<Pack> {
 }
 
 fn mk_args_code(cfg: &PluginConfig) -> Option<String> {
-    if *cfg.args == serde_json::Value::Null {
+    if match *cfg.args {
+        serde_json::Value::Object(_) => false,
+        // ignore Null, Bool, Number, String, Array
+        _ => true,
+    } {
         return None;
     }
 
@@ -478,5 +482,4 @@ mod tests {
         let act_diff_ids = itertools::sorted(act_diff.iter().map(|b| b.id())).collect::<Vec<_>>();
         assert_eq!(exp_diff_ids, act_diff_ids);
     }
-
 }
