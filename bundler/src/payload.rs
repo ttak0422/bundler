@@ -164,3 +164,251 @@ pub fn expand_all_opt_plugins<'a>(
     let bs = expand_bundles(bs);
     [ps, bs].concat()
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    mod mother {
+        use super::*;
+
+        pub fn opt_simple_package() -> OptVimPlugin {
+            OptVimPlugin::Package(String::from("simple-package"))
+        }
+
+        pub fn opt_simple_package2() -> OptVimPlugin {
+            OptVimPlugin::Package(String::from("simple-package2"))
+        }
+
+        pub fn opt_filled_package() -> OptVimPlugin {
+            OptVimPlugin::OptPlugin(OptPluginConfig {
+                plugin: String::from("filled-plugin"),
+                startup: PluginConfig::Line(String::from("filled-startup")),
+                pre_config: PluginConfig::Line(String::from("filled-pre-config")),
+                config: PluginConfig::Line(String::from("filled-config")),
+                depends: vec![opt_simple_package()],
+                depend_bundles: vec![String::from("filled-depend-bundle")],
+                modules: vec![String::from("filled-module")],
+                events: vec![String::from("filled-event")],
+                filetypes: vec![String::from("filled-filetype")],
+                commands: vec![String::from("filled-command")],
+                lazy: true,
+            })
+        }
+
+        pub fn opt_filled_detail_package() -> OptVimPlugin {
+            OptVimPlugin::OptPlugin(OptPluginConfig {
+                plugin: String::from("filled-detail-plugin"),
+                startup: PluginConfig::Detail(PluginConfigDetail {
+                    lang: ConfigLang::Vim,
+                    code: String::from("filled-detail-startup-code"),
+                    args: Value::String(String::from("filled-detail-startup-args")),
+                }),
+                pre_config: PluginConfig::Detail(PluginConfigDetail {
+                    lang: ConfigLang::Vim,
+                    code: String::from("filled-detail-pre_config-code"),
+                    args: Value::String(String::from("filled-detail-pre_config-args")),
+                }),
+                config: PluginConfig::Detail(PluginConfigDetail {
+                    lang: ConfigLang::Lua,
+                    code: String::from("filled-detail-config-code"),
+                    args: Value::String(String::from("filled-detail-config-args")),
+                }),
+                depends: vec![opt_filled_package()],
+                depend_bundles: vec![String::from("filled-detail-depend-bundle")],
+                modules: vec![String::from("filled-detail-module")],
+                events: vec![String::from("filled-detail-event")],
+                filetypes: vec![String::from("filled-detail-filetype")],
+                commands: vec![String::from("filled-detail-command")],
+                lazy: false,
+            })
+        }
+
+        pub fn filled_bundle() -> BundleConfig {
+            BundleConfig {
+                name: String::from("simple-bundle"),
+                plugins: vec![opt_simple_package2()],
+                startup: PluginConfig::Line(String::from("simple-startup")),
+                extra_packages: vec![String::from("simple-extra-package")],
+                pre_config: PluginConfig::Line(String::from("simple-pre-config")),
+                config: PluginConfig::Line(String::from("simple-config")),
+                depends: vec![opt_simple_package()],
+                depend_bundles: vec![String::from("simple-depend-bundle")],
+                modules: vec![String::from("simple-module")],
+                events: vec![String::from("simple-event")],
+                filetypes: vec![String::from("simple-filetype")],
+                commands: vec![String::from("simple-command")],
+                lazy: true,
+            }
+        }
+
+        pub fn filled_detail_bundle() -> BundleConfig {
+            BundleConfig {
+                name: String::from("detail-bundle"),
+                plugins: vec![opt_simple_package2()],
+                startup: PluginConfig::Detail(PluginConfigDetail {
+                    lang: ConfigLang::Vim,
+                    code: String::from("detail-startup"),
+                    args: Value::String(String::from("detail-startup-arg")),
+                }),
+                extra_packages: vec![String::from("detail-extra-package")],
+                pre_config: PluginConfig::Detail(PluginConfigDetail {
+                    lang: ConfigLang::Vim,
+                    code: String::from("detail-pre-config"),
+                    args: Value::String(String::from("detail-pre_config-arg")),
+                }),
+                config: PluginConfig::Detail(PluginConfigDetail {
+                    lang: ConfigLang::Lua,
+                    code: String::from("detail-config"),
+                    args: Value::String(String::from("detail-config-arg")),
+                }),
+                depends: vec![opt_filled_detail_package()],
+                depend_bundles: vec![String::from("detail-depend-bundle")],
+                modules: vec![String::from("detail-module")],
+                events: vec![String::from("detail-event")],
+                filetypes: vec![String::from("detail-filetype")],
+                commands: vec![String::from("detail-command")],
+                lazy: false,
+            }
+        }
+    }
+
+    #[test]
+    fn expand_empty_plugins() {
+        let arg = vec![];
+        let exp: Vec<&OptVimPlugin> = vec![];
+
+        let act = expand_opt_plugins(&arg);
+
+        assert_eq!(exp, act);
+    }
+
+    #[test]
+    fn expand_simple_plugins() {
+        let arg = vec![mother::opt_simple_package()];
+        let exp = vec![mother::opt_simple_package()];
+        let exp = exp.iter().collect::<Vec<_>>();
+
+        let act = expand_opt_plugins(&arg);
+
+        assert_eq!(exp, act);
+    }
+
+    #[test]
+    fn expand_filled_plugins() {
+        let arg = vec![mother::opt_filled_package()];
+        let exp = vec![mother::opt_filled_package(), mother::opt_simple_package()];
+        let exp = exp.iter().collect::<Vec<_>>();
+
+        let act = expand_opt_plugins(&arg);
+
+        assert_eq!(exp, act);
+    }
+
+    #[test]
+    fn expand_filled_detail_plugins() {
+        let arg = vec![mother::opt_filled_detail_package()];
+        let exp = vec![
+            mother::opt_filled_detail_package(),
+            mother::opt_filled_package(),
+            mother::opt_simple_package(),
+        ];
+        let exp = exp.iter().collect::<Vec<_>>();
+
+        let act = expand_opt_plugins(&arg);
+
+        assert_eq!(exp, act);
+    }
+
+    #[test]
+    fn expand_dup_plugins() {
+        let arg = vec![mother::opt_simple_package(), mother::opt_simple_package()];
+        let exp = vec![mother::opt_simple_package(), mother::opt_simple_package()];
+        let exp = exp.iter().collect::<Vec<_>>();
+
+        let act = expand_opt_plugins(&arg);
+
+        assert_eq!(exp, act);
+    }
+
+    #[test]
+    fn expand_empty_bundles() {
+        let arg = vec![];
+        let exp: Vec<&OptVimPlugin> = vec![];
+
+        let act = expand_bundles(&arg);
+
+        assert_eq!(exp, act);
+    }
+
+    #[test]
+    fn expand_filled_bundles() {
+        let arg = vec![mother::filled_bundle()];
+        let exp = vec![mother::opt_simple_package2(), mother::opt_simple_package()];
+        let exp = exp.iter().collect::<Vec<_>>();
+
+        let act = expand_bundles(&arg);
+
+        assert_eq!(exp, act);
+    }
+
+    #[test]
+    fn expand_filled_detail_bundles() {
+        let arg = vec![mother::filled_detail_bundle()];
+        let exp = vec![
+            mother::opt_simple_package2(),
+            mother::opt_filled_detail_package(),
+            mother::opt_filled_package(),
+            mother::opt_simple_package(),
+        ];
+        let exp = exp.iter().collect::<Vec<_>>();
+
+        let act = expand_bundles(&arg);
+
+        assert_eq!(exp, act);
+    }
+
+    #[test]
+    fn expand_dup_bundles() {
+        let arg = vec![mother::filled_bundle(), mother::filled_bundle()];
+        let exp = vec![
+            mother::opt_simple_package2(),
+            mother::opt_simple_package2(),
+            mother::opt_simple_package(),
+            mother::opt_simple_package(),
+        ];
+        let exp = exp.iter().collect::<Vec<_>>();
+
+        let act = expand_bundles(&arg);
+
+        assert_eq!(exp, act);
+    }
+
+    #[test]
+    fn expand_all_empty() {
+        let arg_ps = vec![];
+        let arg_bs = vec![];
+        let exp: Vec<&OptVimPlugin> = vec![];
+
+        let act = expand_all_opt_plugins(&arg_ps, &arg_bs);
+
+        assert_eq!(exp, act);
+    }
+
+    #[test]
+    fn expand_all_filled() {
+        let arg_ps = vec![mother::opt_filled_package()];
+        let arg_bs = vec![mother::filled_bundle()];
+        let exp = vec![
+            mother::opt_filled_package(),
+            mother::opt_simple_package(),
+            mother::opt_simple_package2(),
+            mother::opt_simple_package(),
+        ];
+        let exp = exp.iter().collect::<Vec<_>>();
+
+        let act = expand_all_opt_plugins(&arg_ps, &arg_bs);
+
+        assert_eq!(exp, act);
+    }
+}
