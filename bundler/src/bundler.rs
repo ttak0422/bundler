@@ -1,10 +1,9 @@
 use anyhow::{bail, Result};
 use itertools::Itertools;
-use std::collections::{HashMap, HashSet};
 use std::fs::{create_dir, File};
-use std::hash::Hash;
 use std::io::Write;
 
+use crate::collection_util::{to_unique_map, to_unique_vector};
 use crate::constants::{dir, file, Language};
 use crate::lua::to_lua_table;
 use crate::unpack::{Bundle, LoadingOptions, OptPlugin, Pack, PluginConfig, StartPlugin};
@@ -65,16 +64,6 @@ impl<'a> Bundleable for Bundle<'a> {
         };
         *self != default
     }
-}
-
-fn to_unique_vector<T: Hash + Eq>(v: Vec<T>) -> Vec<T> {
-    v.into_iter().collect::<HashSet<_>>().into_iter().collect()
-}
-
-fn to_unique_map<T: Hash + Eq>(m: HashMap<&str, Vec<T>>) -> HashMap<&str, Vec<T>> {
-    m.into_iter()
-        .map(|(k, v)| (k, to_unique_vector(v)))
-        .collect()
 }
 
 fn bundle_vector<T>(xs: Vec<T>) -> Result<Vec<T>>
