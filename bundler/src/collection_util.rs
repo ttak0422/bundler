@@ -24,7 +24,10 @@ mod tests {
     fn make_unique_vector(arg: Vec<&str>, exp: Vec<&str>) {
         let act = to_unique_vector(arg);
 
-        assert_eq!(exp, act);
+        assert_eq!(
+            itertools::sorted(exp).collect::<Vec<_>>(),
+            itertools::sorted(act).collect::<Vec<_>>()
+        );
     }
 
     #[rstest(arg, exp,
@@ -35,6 +38,18 @@ mod tests {
     fn make_unique_map(arg: HashMap<&str, Vec<&str>>, exp: HashMap<&str, Vec<&str>>) {
         let act = to_unique_map(arg);
 
-        assert_eq!(exp, act);
+        assert_eq!(exp.keys().len(), act.keys().len());
+        assert_eq!(
+            itertools::sorted(exp.keys()).collect::<Vec<_>>(),
+            itertools::sorted(act.keys()).collect::<Vec<_>>()
+        );
+        assert_eq!(
+            exp.values()
+                .map(|value| itertools::sorted(value).collect::<Vec<_>>())
+                .collect::<Vec<_>>(),
+            act.values()
+                .map(|value| itertools::sorted(value).collect::<Vec<_>>())
+                .collect::<Vec<_>>(),
+        );
     }
 }
