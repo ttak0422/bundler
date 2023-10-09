@@ -1,3 +1,4 @@
+// TODO: rename some type, fn.
 use crate::constants::Language;
 use crate::payload::{
     expand_all_opt_plugins, BundleConfig as PayloadBundleConfig, ConfigLang, Meta,
@@ -198,7 +199,7 @@ fn unpack_opt_plugins<'a>(
         .collect::<Vec<_>>()
 }
 
-fn unpack_opt_bundle<'a>(
+fn unpack_bundle<'a>(
     id_map: &HashMap<&'a str, &'a str>,
     bundle: &'a PayloadBundleConfig,
 ) -> Bundle<'a> {
@@ -256,13 +257,13 @@ fn unpack_opt_bundle<'a>(
     }
 }
 
-fn unpack_opt_bundles<'a>(
+fn unpack_bundles<'a>(
     id_map: &HashMap<&'a str, &'a str>,
     bundles: &'a Vec<PayloadBundleConfig>,
 ) -> Vec<Bundle<'a>> {
     bundles
         .iter()
-        .map(|b| unpack_opt_bundle(id_map, b))
+        .map(|b| unpack_bundle(id_map, b))
         .collect::<Vec<_>>()
 }
 
@@ -366,8 +367,10 @@ fn unpack_bundle_load_options<'a>(
     id_map: &HashMap<&'a str, &'a str>,
     bundles: &'a Vec<PayloadBundleConfig>,
 ) -> LoadingOptions<'a> {
-    bundles.iter().fold(load_opt, |mut load_opt_acc, bundle| {
+    bundles.iter().fold(load_opt, |load_opt_acc, bundle| {
         let id = bundle.name.as_str();
+        let mut load_opt_acc =
+            unpack_opt_plugin_load_options(load_opt_acc, id_map, &bundle.plugins.iter().collect());
         load_opt_acc.depends.entry(id).or_default();
         load_opt_acc.depend_bundles.entry(id).or_default();
         let depends: HashMap<&str, Vec<&str>> = if bundle.depends.is_empty() {
@@ -430,6 +433,9 @@ fn unpack_bundle_load_options<'a>(
                 acc.entry(command).or_default().push(id);
                 acc
             });
+        if bundle.lazy {
+            load_opt_acc.lazys.push(id);
+        }
         unpack_opt_plugin_load_options(
             LoadingOptions {
                 depends,
@@ -453,7 +459,7 @@ pub fn unpack<'a>(payload: &'a Payload) -> Pack<'a> {
 
     let start_plugins = unpack_start_plugins(&id_map, &payload.cfg.start_plugins);
     let opt_plugins = unpack_opt_plugins(&id_map, &payload_opt_plugins);
-    let bundles = unpack_opt_bundles(&id_map, &payload.cfg.bundles);
+    let bundles = unpack_bundles(&id_map, &payload.cfg.bundles);
     let load_opt =
         unpack_opt_plugin_load_options(LoadingOptions::default(), &id_map, &payload_opt_plugins);
     let load_opt = unpack_bundle_load_options(load_opt, &id_map, &payload.cfg.bundles);
@@ -463,5 +469,372 @@ pub fn unpack<'a>(payload: &'a Payload) -> Pack<'a> {
         opt_plugins,
         bundles,
         load_opt,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::payload::PluginPackage;
+
+    use super::*;
+
+    mod mother {
+        use crate::payload::{Meta, PluginPackage};
+
+        pub fn package_path(name: &str) -> String {
+            String::from("/nix/store/") + name
+        }
+
+        pub fn plugin_package(name: &str) -> PluginPackage {
+            PluginPackage {
+                id: String::from(name),
+                package: package_path(name),
+            }
+        }
+
+        pub fn meta(names: Vec<&str>) -> Meta {
+            Meta {
+                extra_packages: vec![String::from("/nix/store/...")],
+                id_map: names.iter().map(|name| plugin_package(name)).collect(),
+            }
+        }
+    }
+
+    #[test]
+    fn make_id_map() {
+        let foo_package = PluginPackage {
+            id: String::from("foo"),
+            package: mother::package_path("foo"),
+        };
+        let bar_package = PluginPackage {
+            id: String::from("bar"),
+            package: mother::package_path("bar"),
+        };
+        let meta = Meta {
+            extra_packages: vec![String::from("/nix/store/...")],
+            id_map: vec![foo_package.clone(), bar_package.clone()],
+        };
+        let exp = HashMap::<&str, &str>::from([
+            (foo_package.package.as_str(), "foo"),
+            (&bar_package.package.as_str(), "bar"),
+        ]);
+
+        let act = mk_id_map(&meta);
+
+        assert_eq!(exp, act);
+    }
+
+    #[test]
+    fn unpack_start_package() {
+        let name = "foo-vim";
+        let meta = mother::meta(vec![name]);
+        let id_map = mk_id_map(&meta);
+        let plugin = PayloadStartVimPlugin::Package(mother::package_path(name));
+        let plugins = vec![plugin.clone()];
+        let exp = StartPlugin {
+            id: name,
+            ..Default::default()
+        };
+        let exp_vec = vec![exp.clone()];
+
+        let act = super::unpack_start_plugin(&id_map, &plugin);
+        let act_vec = super::unpack_start_plugins(&id_map, &plugins);
+
+        assert_eq!(exp, act);
+        assert_eq!(exp_vec, act_vec);
+    }
+
+    #[test]
+    fn unpack_start_plugin() {
+        let name = "foo-vim";
+        let meta = mother::meta(vec![name]);
+        let id_map = mk_id_map(&meta);
+        let code = "foo-code";
+        let args = serde_json::json!({"foo-arg": 1});
+        let plugin = PayloadStartVimPlugin::StartPlugin(crate::payload::StartPluginConfig {
+            plugin: mother::package_path(name),
+            startup: crate::payload::PluginConfig::Detail(crate::payload::PluginConfigDetail {
+                lang: crate::payload::ConfigLang::Lua,
+                code: String::from(code),
+                args: args.clone(),
+            }),
+            extra_packages: vec![],
+        });
+        let plugins = vec![plugin.clone()];
+        let exp = StartPlugin {
+            id: name,
+            startup: PluginConfig {
+                lang: Language::Lua,
+                code: &code,
+                args: &args,
+            },
+        };
+        let exp_vec = vec![exp.clone()];
+
+        let act = super::unpack_start_plugin(&id_map, &plugin);
+        let act_vec = super::unpack_start_plugins(&id_map, &plugins);
+
+        assert_eq!(exp, act);
+        assert_eq!(exp_vec, act_vec);
+    }
+
+    #[test]
+    fn unpack_opt_package() {
+        let name = "foo-vim";
+        let meta = mother::meta(vec![name]);
+        let id_map = mk_id_map(&meta);
+        let plugin = PayloadOptVimPlugin::Package(mother::package_path(name));
+        let plugins = vec![plugin.clone()];
+        let exp = vec![OptPlugin {
+            id: name,
+            ..Default::default()
+        }];
+        let exp_vec = exp.clone();
+
+        let act = super::unpack_opt_plugin(&id_map, &plugin);
+        let act_vec = super::unpack_opt_plugins(&id_map, &plugins.iter().collect());
+
+        assert_eq!(exp, act);
+        assert_eq!(exp_vec, act_vec);
+    }
+
+    #[test]
+    fn unpack_opt_plugin() {
+        let name = "foo-vim";
+        let name2 = "bar-vin";
+        let meta = mother::meta(vec![name, name2]);
+        let id_map = mk_id_map(&meta);
+        let startup_code = "foo-startup";
+        let config_code = "foo-config";
+        let pre_config_code = "foo-pre-config";
+        let startup_arg = serde_json::json!({"foo-startup-arg": 1});
+        let config_arg = serde_json::json!({"foo-config-arg": 2});
+        let pre_config_arg = serde_json::json!({"foo-pre-config-arg": 3});
+        let plugin = PayloadOptVimPlugin::OptPlugin(crate::payload::OptPluginConfig {
+            plugin: mother::package_path(name),
+            startup: crate::payload::PluginConfig::Detail(crate::payload::PluginConfigDetail {
+                lang: crate::payload::ConfigLang::Vim,
+                code: String::from(startup_code),
+                args: startup_arg.clone(),
+            }),
+            pre_config: crate::payload::PluginConfig::Detail(crate::payload::PluginConfigDetail {
+                lang: crate::payload::ConfigLang::Lua,
+                code: String::from(pre_config_code),
+                args: pre_config_arg.clone(),
+            }),
+            config: crate::payload::PluginConfig::Detail(crate::payload::PluginConfigDetail {
+                lang: crate::payload::ConfigLang::Lua,
+                code: String::from(config_code),
+                args: config_arg.clone(),
+            }),
+            depends: vec![PayloadOptVimPlugin::Package(mother::package_path(name2))],
+            ..Default::default()
+        });
+        let plugins = vec![plugin.clone()];
+        let exp = vec![
+            OptPlugin {
+                id: name,
+                startup: PluginConfig {
+                    lang: Language::Vim,
+                    code: &startup_code,
+                    args: &startup_arg,
+                },
+                pre_config: PluginConfig {
+                    lang: Language::Lua,
+                    code: &pre_config_code,
+                    args: &pre_config_arg,
+                },
+                config: PluginConfig {
+                    lang: Language::Lua,
+                    code: &config_code,
+                    args: &config_arg,
+                },
+            },
+            OptPlugin {
+                id: name2,
+                ..Default::default()
+            },
+        ];
+        let exp_vec = exp.clone();
+
+        let act = super::unpack_opt_plugin(&id_map, &plugin);
+        let act_vec = super::unpack_opt_plugins(&id_map, &plugins.iter().collect());
+
+        // TODO: soft assert, ignore order
+        assert_eq!(exp, act);
+        assert_eq!(exp_vec, act_vec);
+    }
+
+    #[test]
+    fn unpack_bundle() {
+        let bundle_name = "hoge";
+        let depend_bundle_name = "huga";
+        let name1 = "foo-vim";
+        let name2 = "bar-vim";
+        let meta = mother::meta(vec![name1, name2]);
+        let id_map = mk_id_map(&meta);
+        let startup_code = "foo-startup";
+        let config_code = "foo-config";
+        let pre_config_code = "foo-pre-config";
+        let startup_arg = serde_json::json!({"foo-startup-arg": 1});
+        let config_arg = serde_json::json!({"foo-config-arg": 2});
+        let pre_config_arg = serde_json::json!({"foo-pre-config-arg": 3});
+        let bundle = PayloadBundleConfig {
+            name: String::from(bundle_name),
+            plugins: vec![PayloadOptVimPlugin::Package(mother::package_path(name1))],
+            startup: crate::payload::PluginConfig::Detail(crate::payload::PluginConfigDetail {
+                lang: crate::payload::ConfigLang::Vim,
+                code: String::from(startup_code),
+                args: startup_arg.clone(),
+            }),
+            extra_packages: vec![],
+            pre_config: crate::payload::PluginConfig::Detail(crate::payload::PluginConfigDetail {
+                lang: crate::payload::ConfigLang::Lua,
+                code: String::from(pre_config_code),
+                args: pre_config_arg.clone(),
+            }),
+            config: crate::payload::PluginConfig::Detail(crate::payload::PluginConfigDetail {
+                lang: crate::payload::ConfigLang::Lua,
+                code: String::from(config_code),
+                args: config_arg.clone(),
+            }),
+            depends: vec![PayloadOptVimPlugin::Package(mother::package_path(name2))],
+            depend_bundles: vec![depend_bundle_name.to_string()],
+            ..Default::default()
+        };
+        let exp = Bundle {
+            id: bundle_name,
+            plugins: vec![name1],
+            startup: PluginConfig {
+                lang: Language::Vim,
+                code: &startup_code,
+                args: &startup_arg,
+            },
+            pre_config: PluginConfig {
+                lang: Language::Lua,
+                code: &pre_config_code,
+                args: &pre_config_arg,
+            },
+            config: PluginConfig {
+                lang: Language::Lua,
+                code: &config_code,
+                args: &config_arg,
+            },
+        };
+
+        let act = super::unpack_bundle(&id_map, &bundle);
+
+        assert_eq!(exp, act);
+    }
+
+    #[test]
+    fn unpack_opt_package_load_options() {
+        let name = "foo-vim";
+        let meta = mother::meta(vec![name]);
+        let id_map = mk_id_map(&meta);
+        let plugin = PayloadOptVimPlugin::Package(mother::package_path(name));
+        let plugins = vec![plugin.clone()];
+        let exp = LoadingOptions {
+            depends: HashMap::from([(name, vec![])]),
+            depend_bundles: HashMap::from([(name, vec![])]),
+            modules: HashMap::from([]),
+            events: HashMap::from([]),
+            filetypes: HashMap::from([]),
+            commands: HashMap::from([]),
+            lazys: vec![],
+        };
+
+        let act = super::unpack_opt_plugin_load_options(
+            LoadingOptions::default(),
+            &id_map,
+            &plugins.iter().collect(),
+        );
+
+        assert_eq!(exp, act);
+    }
+
+    #[test]
+    fn unpack_opt_plugin_load_options() {
+        let name1 = "foo-vim";
+        let name2 = "bar-vim";
+        let depend_bundle_name = "hoge";
+        let module_name = "module";
+        let event_name = "event";
+        let filetype_name = "filetype";
+        let command_name = "command";
+        let meta = mother::meta(vec![name1, name2]);
+        let id_map = mk_id_map(&meta);
+        let plugin = PayloadOptVimPlugin::OptPlugin(crate::payload::OptPluginConfig {
+            plugin: mother::package_path(name1),
+            depends: vec![PayloadOptVimPlugin::Package(mother::package_path(name2))],
+            depend_bundles: vec![depend_bundle_name.to_string()],
+            modules: vec![module_name.to_string()],
+            events: vec![event_name.to_string()],
+            filetypes: vec![filetype_name.to_string()],
+            commands: vec![command_name.to_string()],
+            lazy: true,
+            ..Default::default()
+        });
+        let exp = LoadingOptions {
+            depends: HashMap::from([(name1, vec![name2]), (name2, vec![])]),
+            depend_bundles: HashMap::from([(name1, vec![depend_bundle_name]), (name2, vec![])]),
+            modules: HashMap::from([(module_name, vec![name1])]),
+            events: HashMap::from([(event_name, vec![name1])]),
+            filetypes: HashMap::from([(filetype_name, vec![name1])]),
+            commands: HashMap::from([(command_name, vec![name1])]),
+            lazys: vec![name1],
+        };
+
+        let act = super::unpack_opt_plugin_load_options(
+            LoadingOptions::default(),
+            &id_map,
+            &vec![&plugin],
+        );
+
+        assert_eq!(exp, act);
+    }
+
+    #[test]
+    fn unpack_bundle_load_options() {
+        let name1 = "foo-vim";
+        let name2 = "bar-vim";
+        let bundle_name = "hoge";
+        let depend_bundle_name = "huga";
+        let module_name = "module";
+        let event_name = "event";
+        let filetype_name = "filetype";
+        let command_name = "command";
+        let meta = mother::meta(vec![name1, name2]);
+        let id_map = mk_id_map(&meta);
+        let bundle = PayloadBundleConfig {
+            name: String::from(bundle_name),
+            plugins: vec![PayloadOptVimPlugin::Package(mother::package_path(name1))],
+            depends: vec![PayloadOptVimPlugin::Package(mother::package_path(name2))],
+            depend_bundles: vec![depend_bundle_name.to_string()],
+            modules: vec![module_name.to_string()],
+            events: vec![event_name.to_string()],
+            filetypes: vec![filetype_name.to_string()],
+            commands: vec![command_name.to_string()],
+            lazy: true,
+            ..Default::default()
+        };
+        let bundles = vec![bundle];
+        let exp = LoadingOptions {
+            depends: HashMap::from([(bundle_name, vec![name2]), (name1, vec![]), (name2, vec![])]),
+            depend_bundles: HashMap::from([
+                (bundle_name, vec![depend_bundle_name]),
+                (name1, vec![]),
+                (name2, vec![]),
+            ]),
+            modules: HashMap::from([(module_name, vec![bundle_name])]),
+            events: HashMap::from([(event_name, vec![bundle_name])]),
+            filetypes: HashMap::from([(filetype_name, vec![bundle_name])]),
+            commands: HashMap::from([(command_name, vec![bundle_name])]),
+            lazys: vec![bundle_name],
+        };
+
+        let act = super::unpack_bundle_load_options(LoadingOptions::default(), &id_map, &bundles);
+
+        assert_eq!(exp, act);
     }
 }
