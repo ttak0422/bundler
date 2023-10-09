@@ -1,10 +1,9 @@
 use anyhow::{bail, Result};
 use itertools::Itertools;
-use std::collections::{HashMap, HashSet};
 use std::fs::{create_dir, File};
-use std::hash::Hash;
 use std::io::Write;
 
+use crate::collection_util::{to_unique_map, to_unique_vector};
 use crate::constants::{dir, file, Language};
 use crate::lua::to_lua_table;
 use crate::unpack::{Bundle, LoadingOptions, OptPlugin, Pack, PluginConfig, StartPlugin};
@@ -16,6 +15,13 @@ where
     fn id(&self) -> &str;
     fn modified(&self) -> bool;
     fn bundle(self, other: Self) -> Result<Self> {
+        if self.id() != "" && other.id() != "" && self.id() != other.id() {
+            bail!(
+                "Illegal bundle attempted (`{}` with `{}`).",
+                self.id(),
+                other.id()
+            )
+        }
         let self_modified = self.modified();
         let other_modified = other.modified();
         if self_modified && other_modified && self != other {
@@ -67,16 +73,6 @@ impl<'a> Bundleable for Bundle<'a> {
     }
 }
 
-fn to_unique_vector<T: Hash + Eq>(v: Vec<T>) -> Vec<T> {
-    v.into_iter().collect::<HashSet<_>>().into_iter().collect()
-}
-
-fn to_unique_map<T: Hash + Eq>(m: HashMap<&str, Vec<T>>) -> HashMap<&str, Vec<T>> {
-    m.into_iter()
-        .map(|(k, v)| (k, to_unique_vector(v)))
-        .collect()
-}
-
 fn bundle_vector<T>(xs: Vec<T>) -> Result<Vec<T>>
 where
     T: Bundleable,
@@ -113,7 +109,11 @@ fn bundle_pack(pack: Pack) -> Result<Pack> {
 }
 
 fn mk_args_code(cfg: &PluginConfig) -> Option<String> {
-    if *cfg.args == serde_json::Value::Null {
+    if match *cfg.args {
+        serde_json::Value::Object(_) => false,
+        // ignore Null, Bool, Number, String, Array
+        _ => true,
+    } {
         return None;
     }
 
@@ -152,16 +152,22 @@ fn mk_plugin_config_code(cfg: &PluginConfig) -> String {
 }
 
 fn bundle_setup_dir(root_dir: &str) -> Result<()> {
-    create_dir(String::from(root_dir) + "/" + dir::PLUGIN)?;
-    create_dir(String::from(root_dir) + "/" + dir::PLUGINS)?;
-    create_dir(String::from(root_dir) + "/" + dir::PRE_CONFIG)?;
-    create_dir(String::from(root_dir) + "/" + dir::CONFIG)?;
-    create_dir(String::from(root_dir) + "/" + dir::DEPENDS)?;
-    create_dir(String::from(root_dir) + "/" + dir::DEPEND_BUNDLES)?;
-    create_dir(String::from(root_dir) + "/" + dir::MODULES)?;
-    create_dir(String::from(root_dir) + "/" + dir::EVENTS)?;
-    create_dir(String::from(root_dir) + "/" + dir::FILETYPES)?;
-    create_dir(String::from(root_dir) + "/" + dir::COMMANDS)?;
+    for d in [
+        dir::PLUGIN,
+        dir::PLUGINS,
+        dir::PRE_CONFIG,
+        dir::CONFIG,
+        dir::DEPENDS,
+        dir::DEPEND_BUNDLES,
+        dir::MODULES,
+        dir::EVENTS,
+        dir::FILETYPES,
+        dir::COMMANDS,
+    ]
+    .iter()
+    {
+        create_dir(String::from(root_dir) + "/" + d)?;
+    }
     Ok(())
 }
 
@@ -319,4 +325,161 @@ pub fn bundle(root_dir: &str, payload_path: &str, pack: Pack) -> Result<()> {
     bundle_stats(root_dir, payload_path)?;
 
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use rstest::rstest;
+
+    #[test]
+    fn bundle_start() {
+        let p1_filled = StartPlugin {
+            id: "p1",
+            startup: PluginConfig {
+                lang: Language::Vim,
+                args: &serde_json::Value::String(String::from("p1-args")),
+                code: "p1-args",
+            },
+        };
+        let p1_simple = StartPlugin {
+            id: "p1",
+            ..Default::default()
+        };
+        let p2_simple = StartPlugin {
+            id: "p2",
+            ..Default::default()
+        };
+        let arg_empty = vec![];
+        let arg_same_filled_simple = vec![p1_filled.clone(), p1_simple.clone()];
+        let arg_same_simple_filled = vec![p1_simple.clone(), p1_filled.clone()];
+        let arg_same = vec![p1_filled.clone(), p1_filled.clone()];
+        let arg_diff: Vec<StartPlugin<'_>> = vec![p1_simple.clone(), p2_simple.clone()];
+        let exp_empty: Vec<StartPlugin<'_>> = vec![];
+        let exp_same_filled = vec![p1_filled.clone()];
+        let exp_diff = vec![p1_simple.clone(), p2_simple.clone()];
+
+        let act_empty = bundle_vector(arg_empty).unwrap();
+        let act_same_filled_simple = bundle_vector(arg_same_filled_simple).unwrap();
+        let act_same_simple_filled = bundle_vector(arg_same_simple_filled).unwrap();
+        let act_same = bundle_vector(arg_same).unwrap();
+        let act_diff = bundle_vector(arg_diff).unwrap();
+
+        // TODO: soft assert, ignore order
+        assert_eq!(exp_empty, act_empty);
+        assert_eq!(exp_same_filled, act_same_filled_simple);
+        assert_eq!(exp_same_filled, act_same_simple_filled);
+        assert_eq!(exp_same_filled, act_same);
+        let exp_diff_ids = itertools::sorted(exp_diff.iter().map(|b| b.id())).collect::<Vec<_>>();
+        let act_diff_ids = itertools::sorted(act_diff.iter().map(|b| b.id())).collect::<Vec<_>>();
+        assert_eq!(exp_diff_ids, act_diff_ids);
+    }
+
+    #[test]
+    fn bundle_opt() {
+        let p1_filled = OptPlugin {
+            id: "p1",
+            startup: PluginConfig {
+                lang: Language::Vim,
+                args: &serde_json::Value::String(String::from("p1-args")),
+                code: "p1-args",
+            },
+            config: PluginConfig {
+                lang: Language::Vim,
+                args: &serde_json::Value::String(String::from("p1-args")),
+                code: "p1-args",
+            },
+            pre_config: PluginConfig {
+                lang: Language::Vim,
+                args: &serde_json::Value::String(String::from("p1-args")),
+                code: "p1-args",
+            },
+        };
+        let p1_simple = OptPlugin {
+            id: "p1",
+            ..Default::default()
+        };
+        let p2_simple = OptPlugin {
+            id: "p2",
+            ..Default::default()
+        };
+
+        let arg_empty = vec![];
+        let arg_same_filled_simple = vec![p1_filled.clone(), p1_simple.clone()];
+        let arg_same_simple_filled = vec![p1_simple.clone(), p1_filled.clone()];
+        let arg_same = vec![p1_filled.clone(), p1_filled.clone()];
+        let arg_diff: Vec<OptPlugin<'_>> = vec![p1_simple.clone(), p2_simple.clone()];
+        let exp_empty: Vec<OptPlugin<'_>> = vec![];
+        let exp_same_filled = vec![p1_filled.clone()];
+        let exp_diff = vec![p1_simple.clone(), p2_simple.clone()];
+
+        let act_empty = bundle_vector(arg_empty).unwrap();
+        let act_same_filled_simple = bundle_vector(arg_same_filled_simple).unwrap();
+        let act_same_simple_filled = bundle_vector(arg_same_simple_filled).unwrap();
+        let act_same = bundle_vector(arg_same).unwrap();
+        let act_diff = bundle_vector(arg_diff).unwrap();
+
+        // TODO: soft assert, ignore order
+        assert_eq!(exp_empty, act_empty);
+        assert_eq!(exp_same_filled, act_same_filled_simple);
+        assert_eq!(exp_same_filled, act_same_simple_filled);
+        assert_eq!(exp_same_filled, act_same);
+        let exp_diff_ids = itertools::sorted(exp_diff.iter().map(|b| b.id())).collect::<Vec<_>>();
+        let act_diff_ids = itertools::sorted(act_diff.iter().map(|b| b.id())).collect::<Vec<_>>();
+        assert_eq!(exp_diff_ids, act_diff_ids);
+    }
+
+    #[test]
+    fn bundle_bundle() {
+        let b1_filled = Bundle {
+            id: "b1",
+            plugins: vec!["p1"],
+            startup: PluginConfig {
+                lang: Language::Vim,
+                args: &serde_json::Value::String(String::from("b1-args")),
+                code: "b1-args",
+            },
+            config: PluginConfig {
+                lang: Language::Vim,
+                args: &serde_json::Value::String(String::from("b1-args")),
+                code: "b1-args",
+            },
+            pre_config: PluginConfig {
+                lang: Language::Vim,
+                args: &serde_json::Value::String(String::from("b1-args")),
+                code: "b1-args",
+            },
+        };
+        let b1_simple = Bundle {
+            id: "b1",
+            ..Default::default()
+        };
+        let b2_simple = Bundle {
+            id: "b2",
+            ..Default::default()
+        };
+        let arg_empty = vec![];
+        let arg_same_filled_simple = vec![b1_filled.clone(), b1_simple.clone()];
+        let arg_same_simple_filled = vec![b1_simple.clone(), b1_filled.clone()];
+        let arg_same = vec![b1_filled.clone(), b1_filled.clone()];
+        let arg_diff: Vec<Bundle<'_>> = vec![b1_simple.clone(), b2_simple.clone()];
+        let exp_empty: Vec<Bundle<'_>> = vec![];
+        let exp_same_filled = vec![b1_filled.clone()];
+        let exp_diff = vec![b1_simple.clone(), b2_simple.clone()];
+
+        let act_empty = bundle_vector(arg_empty).unwrap();
+        let act_same_filled_simple = bundle_vector(arg_same_filled_simple).unwrap();
+        let act_same_simple_filled = bundle_vector(arg_same_simple_filled).unwrap();
+        let act_same = bundle_vector(arg_same).unwrap();
+        let act_diff = bundle_vector(arg_diff).unwrap();
+
+        // TODO: soft assert, ignore order
+        assert_eq!(exp_empty, act_empty);
+        assert_eq!(exp_same_filled, act_same_filled_simple);
+        assert_eq!(exp_same_filled, act_same_simple_filled);
+        assert_eq!(exp_same_filled, act_same);
+        let exp_diff_ids = itertools::sorted(exp_diff.iter().map(|b| b.id())).collect::<Vec<_>>();
+        let act_diff_ids = itertools::sorted(act_diff.iter().map(|b| b.id())).collect::<Vec<_>>();
+        assert_eq!(exp_diff_ids, act_diff_ids);
+    }
 }

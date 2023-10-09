@@ -1,4 +1,8 @@
+#[cfg_attr(test, macro_use)]
+extern crate derive_builder;
+
 mod bundler;
+mod collection_util;
 mod constants;
 mod lua;
 mod payload;
