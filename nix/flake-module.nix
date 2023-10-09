@@ -255,7 +255,7 @@ in {
         # (package | startPluginConfig | optPluginConfig | bundleConfig) -> package[]
         extractExtraPackages = x:
           let
-            arg = x.extraPackages or (if x ? plugins then
+            arg = (x.extraPackages or [ ]) ++ (if x ? plugins then
               map extractExtraPackages x.plugins
             else
               [ ]);
