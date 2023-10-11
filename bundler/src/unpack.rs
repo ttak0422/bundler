@@ -1,23 +1,19 @@
 // TODO: rename some type, fn.
 use crate::constants::Language;
-use crate::payload::{
-    expand_all_opt_plugins, BundleConfig as PayloadBundleConfig, ConfigLang, Meta,
-    OptVimPlugin as PayloadOptVimPlugin, Payload, PluginConfig as PayloadPluginConfig,
-    StartVimPlugin as PayloadStartVimPlugin,
-};
+use crate::payload;
 use serde_json::Value;
 use std::collections::HashMap;
 
-fn mapping_lang(lang: &ConfigLang) -> Language {
+fn mapping_lang(lang: &payload::Lang) -> Language {
     match lang {
-        ConfigLang::Vim => Language::Vim,
-        ConfigLang::Lua => Language::Lua,
-        ConfigLang::Fennel => Language::Fennel,
+        payload::Lang::Vim => Language::Vim,
+        payload::Lang::Lua => Language::Lua,
+        payload::Lang::Fennel => Language::Fennel,
     }
 }
 
 /// key is package (e.g. `/nix/store/...`), value is id which corresponds to the name of vim plugin.
-fn mk_id_map<'a>(meta: &'a Meta) -> HashMap<&'a str, &'a str> {
+fn mk_id_map<'a>(meta: &'a payload::Meta) -> HashMap<&'a str, &'a str> {
     meta.id_map
         .iter()
         .map(|p| (p.package.as_str(), p.id.as_str()))
@@ -85,28 +81,28 @@ pub struct Pack<'a> {
 
 fn unpack_start_plugin<'a>(
     id_map: &HashMap<&'a str, &'a str>,
-    plugin: &'a PayloadStartVimPlugin,
+    plugin: &'a payload::VimStartPlugin,
 ) -> StartPlugin<'a> {
     match plugin {
-        PayloadStartVimPlugin::Package(package) => {
-            let id = id_map.get(package.as_str()).unwrap();
+        payload::VimStartPlugin::SimplePackage(pkg) => {
+            let id = id_map.get(pkg.as_str()).unwrap();
             StartPlugin {
                 id,
                 ..Default::default()
             }
         }
-        PayloadStartVimPlugin::StartPlugin(config) => {
-            let id = id_map.get(config.plugin.as_str()).unwrap();
-            let startup = match &config.startup {
-                PayloadPluginConfig::Line(code) => PluginConfig {
+        payload::VimStartPlugin::ConfiguredPackage(cfg) => {
+            let id = id_map.get(cfg.plugin.as_str()).unwrap();
+            let startup = match &cfg.startup {
+                payload::Config::Simple(code) => PluginConfig {
                     lang: Language::Lua,
                     code: &code,
                     args: &Value::Null,
                 },
-                PayloadPluginConfig::Detail(detail) => PluginConfig {
-                    lang: mapping_lang(&detail.lang),
-                    code: &detail.code,
-                    args: &detail.args,
+                payload::Config::Detail(dtl) => PluginConfig {
+                    lang: mapping_lang(&dtl.lang),
+                    code: &dtl.code,
+                    args: &dtl.args,
                 },
             };
             StartPlugin { id, startup }
@@ -116,7 +112,7 @@ fn unpack_start_plugin<'a>(
 
 fn unpack_start_plugins<'a>(
     id_map: &HashMap<&'a str, &'a str>,
-    plugins: &'a Vec<PayloadStartVimPlugin>,
+    plugins: &'a Vec<payload::VimStartPlugin>,
 ) -> Vec<StartPlugin<'a>> {
     plugins
         .iter()
@@ -126,53 +122,53 @@ fn unpack_start_plugins<'a>(
 
 fn unpack_opt_plugin<'a>(
     id_map: &HashMap<&'a str, &'a str>,
-    plugin: &'a PayloadOptVimPlugin,
+    plugin: &'a payload::VimOptPlugin,
 ) -> Vec<OptPlugin<'a>> {
     match plugin {
-        PayloadOptVimPlugin::Package(package) => {
-            let id = id_map.get(package.as_str()).unwrap();
+        payload::VimOptPlugin::SimplePackage(pkg) => {
+            let id = id_map.get(pkg.as_str()).unwrap();
             vec![OptPlugin {
                 id,
                 ..Default::default()
             }]
         }
-        PayloadOptVimPlugin::OptPlugin(config) => {
-            let id = id_map.get(config.plugin.as_str()).unwrap();
-            let depends = unpack_opt_plugins(id_map, &config.depends.iter().collect());
-            let startup = match &config.startup {
-                PayloadPluginConfig::Line(code) => PluginConfig {
+        payload::VimOptPlugin::ConfiguredPackage(cfg) => {
+            let id = id_map.get(cfg.plugin.as_str()).unwrap();
+            let depends = unpack_opt_plugins(id_map, &cfg.depends.iter().collect());
+            let startup = match &cfg.startup {
+                payload::Config::Simple(code) => PluginConfig {
                     lang: Language::Lua,
                     code: &code,
                     args: &Value::Null,
                 },
-                PayloadPluginConfig::Detail(detail) => PluginConfig {
-                    lang: mapping_lang(&detail.lang),
-                    code: &detail.code,
-                    args: &detail.args,
+                payload::Config::Detail(dtl) => PluginConfig {
+                    lang: mapping_lang(&dtl.lang),
+                    code: &dtl.code,
+                    args: &dtl.args,
                 },
             };
-            let pre_config = match &config.pre_config {
-                PayloadPluginConfig::Line(code) => PluginConfig {
+            let pre_config = match &cfg.pre_config {
+                payload::Config::Simple(code) => PluginConfig {
                     lang: Language::Lua,
                     code: &code,
                     args: &Value::Null,
                 },
-                PayloadPluginConfig::Detail(detail) => PluginConfig {
-                    lang: mapping_lang(&detail.lang),
-                    code: &detail.code,
-                    args: &detail.args,
+                payload::Config::Detail(dtl) => PluginConfig {
+                    lang: mapping_lang(&dtl.lang),
+                    code: &dtl.code,
+                    args: &dtl.args,
                 },
             };
-            let config = match &config.config {
-                PayloadPluginConfig::Line(code) => PluginConfig {
+            let config = match &cfg.config {
+                payload::Config::Simple(code) => PluginConfig {
                     lang: Language::Lua,
                     code: &code,
                     args: &Value::Null,
                 },
-                PayloadPluginConfig::Detail(detail) => PluginConfig {
-                    lang: mapping_lang(&detail.lang),
-                    code: &detail.code,
-                    args: &detail.args,
+                payload::Config::Detail(dtl) => PluginConfig {
+                    lang: mapping_lang(&dtl.lang),
+                    code: &dtl.code,
+                    args: &dtl.args,
                 },
             };
             vec![
@@ -191,7 +187,7 @@ fn unpack_opt_plugin<'a>(
 
 fn unpack_opt_plugins<'a>(
     id_map: &HashMap<&'a str, &'a str>,
-    plugins: &Vec<&'a PayloadOptVimPlugin>,
+    plugins: &Vec<&'a payload::VimOptPlugin>,
 ) -> Vec<OptPlugin<'a>> {
     plugins
         .iter()
@@ -201,51 +197,53 @@ fn unpack_opt_plugins<'a>(
 
 fn unpack_bundle<'a>(
     id_map: &HashMap<&'a str, &'a str>,
-    bundle: &'a PayloadBundleConfig,
+    bundle: &'a payload::Bundle,
 ) -> Bundle<'a> {
     // let id = id_map.get(bundle.name.as_str()).unwrap();
     let plugins = bundle
         .plugins
         .iter()
         .map(|p| match p {
-            PayloadOptVimPlugin::Package(package) => *id_map.get(package.as_str()).unwrap(),
-            PayloadOptVimPlugin::OptPlugin(config) => *id_map.get(config.plugin.as_str()).unwrap(),
+            payload::VimOptPlugin::SimplePackage(pkg) => *id_map.get(pkg.as_str()).unwrap(),
+            payload::VimOptPlugin::ConfiguredPackage(cfg) => {
+                *id_map.get(cfg.plugin.as_str()).unwrap()
+            }
         })
         .collect::<Vec<_>>();
     let startup = match &bundle.startup {
-        PayloadPluginConfig::Line(code) => PluginConfig {
+        payload::Config::Simple(code) => PluginConfig {
             lang: Language::Lua,
             code: &code,
             args: &Value::Null,
         },
-        PayloadPluginConfig::Detail(detail) => PluginConfig {
-            lang: mapping_lang(&detail.lang),
-            code: &detail.code,
-            args: &detail.args,
+        payload::Config::Detail(dtl) => PluginConfig {
+            lang: mapping_lang(&dtl.lang),
+            code: &dtl.code,
+            args: &dtl.args,
         },
     };
     let pre_config = match &bundle.pre_config {
-        PayloadPluginConfig::Line(code) => PluginConfig {
+        payload::Config::Simple(code) => PluginConfig {
             lang: Language::Lua,
             code: &code,
             args: &Value::Null,
         },
-        PayloadPluginConfig::Detail(detail) => PluginConfig {
-            lang: mapping_lang(&detail.lang),
-            code: &detail.code,
-            args: &detail.args,
+        payload::Config::Detail(dtl) => PluginConfig {
+            lang: mapping_lang(&dtl.lang),
+            code: &dtl.code,
+            args: &dtl.args,
         },
     };
     let config = match &bundle.config {
-        PayloadPluginConfig::Line(code) => PluginConfig {
+        payload::Config::Simple(code) => PluginConfig {
             lang: Language::Lua,
             code: &code,
             args: &Value::Null,
         },
-        PayloadPluginConfig::Detail(detail) => PluginConfig {
-            lang: mapping_lang(&detail.lang),
-            code: &detail.code,
-            args: &detail.args,
+        payload::Config::Detail(dtl) => PluginConfig {
+            lang: mapping_lang(&dtl.lang),
+            code: &dtl.code,
+            args: &dtl.args,
         },
     };
     Bundle {
@@ -259,7 +257,7 @@ fn unpack_bundle<'a>(
 
 fn unpack_bundles<'a>(
     id_map: &HashMap<&'a str, &'a str>,
-    bundles: &'a Vec<PayloadBundleConfig>,
+    bundles: &'a Vec<payload::Bundle>,
 ) -> Vec<Bundle<'a>> {
     bundles
         .iter()
@@ -270,18 +268,18 @@ fn unpack_bundles<'a>(
 fn unpack_opt_plugin_load_options<'a>(
     load_opt: LoadingOptions<'a>,
     id_map: &HashMap<&'a str, &'a str>,
-    opt_plugins: &Vec<&'a PayloadOptVimPlugin>,
+    opt_plugins: &Vec<&'a payload::VimOptPlugin>,
 ) -> LoadingOptions<'a> {
     opt_plugins
         .iter()
         .fold(load_opt, |mut load_opt_acc, plugin| match plugin {
-            PayloadOptVimPlugin::Package(p) => {
-                let id = id_map.get(p.as_str()).unwrap();
+            payload::VimOptPlugin::SimplePackage(pkg) => {
+                let id = id_map.get(pkg.as_str()).unwrap();
                 load_opt_acc.depends.entry(id).or_default();
                 load_opt_acc.depend_bundles.entry(id).or_default();
                 load_opt_acc
             }
-            PayloadOptVimPlugin::OptPlugin(cfg) => {
+            payload::VimOptPlugin::ConfiguredPackage(cfg) => {
                 let id = id_map.get(cfg.plugin.as_str()).unwrap();
                 load_opt_acc.depends.entry(id).or_default();
                 load_opt_acc.depend_bundles.entry(id).or_default();
@@ -291,10 +289,10 @@ fn unpack_opt_plugin_load_options<'a>(
                     cfg.depends.iter().fold(load_opt_acc.depends, |mut acc, p| {
                         let dependent_id = id_map
                             .get(match p {
-                                PayloadOptVimPlugin::Package(depend_package) => {
+                                payload::VimOptPlugin::SimplePackage(depend_package) => {
                                     depend_package.as_str()
                                 }
-                                PayloadOptVimPlugin::OptPlugin(depend_plugin_cfg) => {
+                                payload::VimOptPlugin::ConfiguredPackage(depend_plugin_cfg) => {
                                     depend_plugin_cfg.plugin.as_str()
                                 }
                             })
@@ -365,7 +363,7 @@ fn unpack_opt_plugin_load_options<'a>(
 fn unpack_bundle_load_options<'a>(
     load_opt: LoadingOptions<'a>,
     id_map: &HashMap<&'a str, &'a str>,
-    bundles: &'a Vec<PayloadBundleConfig>,
+    bundles: &'a Vec<payload::Bundle>,
 ) -> LoadingOptions<'a> {
     bundles.iter().fold(load_opt, |load_opt_acc, bundle| {
         let id = bundle.name.as_str();
@@ -382,8 +380,10 @@ fn unpack_bundle_load_options<'a>(
                 .fold(load_opt_acc.depends, |mut acc, p| {
                     let dep_id = id_map
                         .get(match p {
-                            PayloadOptVimPlugin::Package(depend_package) => depend_package.as_str(),
-                            PayloadOptVimPlugin::OptPlugin(depend_plugin_cfg) => {
+                            payload::VimOptPlugin::SimplePackage(depend_package) => {
+                                depend_package.as_str()
+                            }
+                            payload::VimOptPlugin::ConfiguredPackage(depend_plugin_cfg) => {
                                 depend_plugin_cfg.plugin.as_str()
                             }
                         })
@@ -452,10 +452,13 @@ fn unpack_bundle_load_options<'a>(
     })
 }
 
-pub fn unpack<'a>(payload: &'a Payload) -> Pack<'a> {
+pub fn unpack<'a>(payload: &'a payload::Payload) -> Pack<'a> {
     let id_map = mk_id_map(&payload.meta);
-    let payload_opt_plugins =
-        expand_all_opt_plugins(&payload.cfg.opt_plugins, &payload.cfg.bundles);
+    let payload_opt_plugins = [
+        payload::expand(&payload.cfg.opt_plugins),
+        payload::expand(&payload.cfg.bundles),
+    ]
+    .concat();
 
     let start_plugins = unpack_start_plugins(&id_map, &payload.cfg.start_plugins);
     let opt_plugins = unpack_opt_plugins(&id_map, &payload_opt_plugins);
@@ -474,19 +477,19 @@ pub fn unpack<'a>(payload: &'a Payload) -> Pack<'a> {
 
 #[cfg(test)]
 mod tests {
-    use crate::payload::PluginPackage;
+    use crate::payload::{IdPackage, Meta};
 
     use super::*;
 
     mod mother {
-        use crate::payload::{Meta, PluginPackage};
+        use crate::payload::{IdPackage, Meta};
 
         pub fn package_path(name: &str) -> String {
             String::from("/nix/store/") + name
         }
 
-        pub fn plugin_package(name: &str) -> PluginPackage {
-            PluginPackage {
+        pub fn plugin_package(name: &str) -> IdPackage {
+            IdPackage {
                 id: String::from(name),
                 package: package_path(name),
             }
@@ -502,11 +505,11 @@ mod tests {
 
     #[test]
     fn make_id_map() {
-        let foo_package = PluginPackage {
+        let foo_package = IdPackage {
             id: String::from("foo"),
             package: mother::package_path("foo"),
         };
-        let bar_package = PluginPackage {
+        let bar_package = IdPackage {
             id: String::from("bar"),
             package: mother::package_path("bar"),
         };
@@ -529,7 +532,7 @@ mod tests {
         let name = "foo-vim";
         let meta = mother::meta(vec![name]);
         let id_map = mk_id_map(&meta);
-        let plugin = PayloadStartVimPlugin::Package(mother::package_path(name));
+        let plugin = payload::VimStartPlugin::SimplePackage(mother::package_path(name));
         let plugins = vec![plugin.clone()];
         let exp = StartPlugin {
             id: name,
@@ -551,10 +554,10 @@ mod tests {
         let id_map = mk_id_map(&meta);
         let code = "foo-code";
         let args = serde_json::json!({"foo-arg": 1});
-        let plugin = PayloadStartVimPlugin::StartPlugin(crate::payload::StartPluginConfig {
+        let plugin = payload::VimStartPlugin::ConfiguredPackage(payload::PluginStartConfig {
             plugin: mother::package_path(name),
-            startup: crate::payload::PluginConfig::Detail(crate::payload::PluginConfigDetail {
-                lang: crate::payload::ConfigLang::Lua,
+            startup: payload::Config::Detail(crate::payload::DetailConfig {
+                lang: crate::payload::Lang::Lua,
                 code: String::from(code),
                 args: args.clone(),
             }),
@@ -583,7 +586,7 @@ mod tests {
         let name = "foo-vim";
         let meta = mother::meta(vec![name]);
         let id_map = mk_id_map(&meta);
-        let plugin = PayloadOptVimPlugin::Package(mother::package_path(name));
+        let plugin = payload::VimOptPlugin::SimplePackage(mother::package_path(name));
         let plugins = vec![plugin.clone()];
         let exp = vec![OptPlugin {
             id: name,
@@ -610,24 +613,26 @@ mod tests {
         let startup_arg = serde_json::json!({"foo-startup-arg": 1});
         let config_arg = serde_json::json!({"foo-config-arg": 2});
         let pre_config_arg = serde_json::json!({"foo-pre-config-arg": 3});
-        let plugin = PayloadOptVimPlugin::OptPlugin(crate::payload::OptPluginConfig {
+        let plugin = payload::VimOptPlugin::ConfiguredPackage(payload::PluginOptConfig {
             plugin: mother::package_path(name),
-            startup: crate::payload::PluginConfig::Detail(crate::payload::PluginConfigDetail {
-                lang: crate::payload::ConfigLang::Vim,
+            startup: payload::Config::Detail(payload::DetailConfig {
+                lang: payload::Lang::Vim,
                 code: String::from(startup_code),
                 args: startup_arg.clone(),
             }),
-            pre_config: crate::payload::PluginConfig::Detail(crate::payload::PluginConfigDetail {
-                lang: crate::payload::ConfigLang::Lua,
+            pre_config: payload::Config::Detail(payload::DetailConfig {
+                lang: payload::Lang::Lua,
                 code: String::from(pre_config_code),
                 args: pre_config_arg.clone(),
             }),
-            config: crate::payload::PluginConfig::Detail(crate::payload::PluginConfigDetail {
-                lang: crate::payload::ConfigLang::Lua,
+            config: payload::Config::Detail(payload::DetailConfig {
+                lang: crate::payload::Lang::Lua,
                 code: String::from(config_code),
                 args: config_arg.clone(),
             }),
-            depends: vec![PayloadOptVimPlugin::Package(mother::package_path(name2))],
+            depends: vec![payload::VimOptPlugin::SimplePackage(mother::package_path(
+                name2,
+            ))],
             ..Default::default()
         });
         let plugins = vec![plugin.clone()];
@@ -679,26 +684,30 @@ mod tests {
         let startup_arg = serde_json::json!({"foo-startup-arg": 1});
         let config_arg = serde_json::json!({"foo-config-arg": 2});
         let pre_config_arg = serde_json::json!({"foo-pre-config-arg": 3});
-        let bundle = PayloadBundleConfig {
+        let bundle = payload::Bundle {
             name: String::from(bundle_name),
-            plugins: vec![PayloadOptVimPlugin::Package(mother::package_path(name1))],
-            startup: crate::payload::PluginConfig::Detail(crate::payload::PluginConfigDetail {
-                lang: crate::payload::ConfigLang::Vim,
+            plugins: vec![payload::VimOptPlugin::SimplePackage(mother::package_path(
+                name1,
+            ))],
+            startup: payload::Config::Detail(payload::DetailConfig {
+                lang: payload::Lang::Vim,
                 code: String::from(startup_code),
                 args: startup_arg.clone(),
             }),
             extra_packages: vec![],
-            pre_config: crate::payload::PluginConfig::Detail(crate::payload::PluginConfigDetail {
-                lang: crate::payload::ConfigLang::Lua,
+            pre_config: payload::Config::Detail(payload::DetailConfig {
+                lang: payload::Lang::Lua,
                 code: String::from(pre_config_code),
                 args: pre_config_arg.clone(),
             }),
-            config: crate::payload::PluginConfig::Detail(crate::payload::PluginConfigDetail {
-                lang: crate::payload::ConfigLang::Lua,
+            config: payload::Config::Detail(payload::DetailConfig {
+                lang: payload::Lang::Lua,
                 code: String::from(config_code),
                 args: config_arg.clone(),
             }),
-            depends: vec![PayloadOptVimPlugin::Package(mother::package_path(name2))],
+            depends: vec![payload::VimOptPlugin::SimplePackage(mother::package_path(
+                name2,
+            ))],
             depend_bundles: vec![depend_bundle_name.to_string()],
             ..Default::default()
         };
@@ -732,7 +741,7 @@ mod tests {
         let name = "foo-vim";
         let meta = mother::meta(vec![name]);
         let id_map = mk_id_map(&meta);
-        let plugin = PayloadOptVimPlugin::Package(mother::package_path(name));
+        let plugin = payload::VimOptPlugin::SimplePackage(mother::package_path(name));
         let plugins = vec![plugin.clone()];
         let exp = LoadingOptions {
             depends: HashMap::from([(name, vec![])]),
@@ -764,9 +773,11 @@ mod tests {
         let command_name = "command";
         let meta = mother::meta(vec![name1, name2]);
         let id_map = mk_id_map(&meta);
-        let plugin = PayloadOptVimPlugin::OptPlugin(crate::payload::OptPluginConfig {
+        let plugin = payload::VimOptPlugin::ConfiguredPackage(payload::PluginOptConfig {
             plugin: mother::package_path(name1),
-            depends: vec![PayloadOptVimPlugin::Package(mother::package_path(name2))],
+            depends: vec![payload::VimOptPlugin::SimplePackage(mother::package_path(
+                name2,
+            ))],
             depend_bundles: vec![depend_bundle_name.to_string()],
             modules: vec![module_name.to_string()],
             events: vec![event_name.to_string()],
@@ -806,10 +817,14 @@ mod tests {
         let command_name = "command";
         let meta = mother::meta(vec![name1, name2]);
         let id_map = mk_id_map(&meta);
-        let bundle = PayloadBundleConfig {
+        let bundle = payload::Bundle {
             name: String::from(bundle_name),
-            plugins: vec![PayloadOptVimPlugin::Package(mother::package_path(name1))],
-            depends: vec![PayloadOptVimPlugin::Package(mother::package_path(name2))],
+            plugins: vec![payload::VimOptPlugin::SimplePackage(mother::package_path(
+                name1,
+            ))],
+            depends: vec![payload::VimOptPlugin::SimplePackage(mother::package_path(
+                name2,
+            ))],
             depend_bundles: vec![depend_bundle_name.to_string()],
             modules: vec![module_name.to_string()],
             events: vec![event_name.to_string()],
