@@ -27,8 +27,6 @@ pub fn expand<'a, T: Expandable<opt::VimPlugin>>(xs: &'a Vec<T>) -> Vec<&'a opt:
 
 #[cfg(test)]
 mod tests {
-    use rstest::rstest;
-
     use crate::{payload::Bundle, payload::VimOptPlugin};
 
     mod mother {
@@ -191,6 +189,20 @@ mod tests {
     fn expand_bundle_empty() {
         let arg = Vec::<Bundle>::new();
         let exp = Vec::<&VimOptPlugin>::new();
+
+        let act = super::expand(&arg);
+
+        assert_eq!(exp, act);
+    }
+
+    #[test]
+    fn expand_bundle_filled() {
+        let arg = vec![mother::filled_bundle()];
+        let exp = vec![
+            mother::opt_simple_package2(),
+            mother::opt_simple_package(),
+        ];
+        let exp = exp.iter().collect::<Vec<_>>();
 
         let act = super::expand(&arg);
 
