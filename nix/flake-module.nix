@@ -204,6 +204,11 @@ in {
               "Time in milliseconds to wait before loading lazy plugins";
             default = 100;
           };
+          logLevel = mkOption {
+            type = types.enum [ "debug" "info" "warn" "error" ];
+            description = "log level of bundler-nvim";
+            default = "warn";
+          };
         };
       in {
         options.bundler-nvim = mkOption {
@@ -315,6 +320,7 @@ in {
                 require("bundler").new({
                   root = "${cfgFiles}",
                   lazy_time = ${toString cfg.lazyTime},
+                  log_level = "${cfg.logLevel}",
                 }):setup_loader()
                 EOF
               '';

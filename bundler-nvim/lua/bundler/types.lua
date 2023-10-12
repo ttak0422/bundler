@@ -1,6 +1,7 @@
 ---@class Options
 ---@field root string
 ---@field lazy_time number
+---@field log_level '"debug"' | '"info"'| '"warn"' | '"error"'
 
 ---@class Bundler
 ---@field root string
