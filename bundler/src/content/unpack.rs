@@ -183,18 +183,6 @@ impl<'a> Unpackable<'a, config::Bundle<'a>> for payload::Bundle {
     }
 }
 
-// fn unpack_start_plugin<'a>(
-//     id_map: &HashMap<&'a str, &'a str>,
-//     plugin: &'a payload::VimStartPlugin,
-// ) -> config::StartPlugin<'a> {
-//     match plugin {
-//         payload::VimStartPlugin::SimplePackage(pkg) => {
-//             let id = id_map.get(pkg.as_str()).unwrap();
-//             config::StartPlugin {
-//                 id,
-//                 ..Default::default()
-//             }
-
 fn unpack_opt_plugin_load_options<'a>(
     load_opt: config::LoadingOptions<'a>,
     id_map: &HashMap<&'a str, &'a str>,
