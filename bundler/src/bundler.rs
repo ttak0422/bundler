@@ -6,7 +6,7 @@ use std::io::Write;
 use crate::collection_util::{to_unique_map, to_unique_vector};
 use crate::constants::{dir, file, Language};
 use crate::lua::to_lua_table;
-use crate::unpack::{Bundle, LoadingOptions, OptPlugin, Pack, PluginConfig, StartPlugin};
+use crate::content::{Bundle, LoadingOptions, OptPlugin, Specs, PluginConfig, StartPlugin};
 
 trait Bundleable
 where
@@ -88,22 +88,22 @@ where
         .collect()
 }
 
-fn bundle_pack(pack: Pack) -> Result<Pack> {
-    let start_plugins = bundle_vector(pack.start_plugins)?;
-    let opt_plugins = bundle_vector(pack.opt_plugins)?;
-    let bundles = bundle_vector(pack.bundles)?;
-    Ok(Pack {
+fn bundle_specs(specs: Specs) -> Result<Specs> {
+    let start_plugins = bundle_vector(specs.start_plugins)?;
+    let opt_plugins = bundle_vector(specs.opt_plugins)?;
+    let bundles = bundle_vector(specs.bundles)?;
+    Ok(Specs {
         start_plugins,
         opt_plugins,
         bundles,
         load_opt: LoadingOptions {
-            depends: to_unique_map(pack.load_opt.depends),
-            depend_bundles: to_unique_map(pack.load_opt.depend_bundles),
-            modules: to_unique_map(pack.load_opt.modules),
-            events: to_unique_map(pack.load_opt.events),
-            filetypes: to_unique_map(pack.load_opt.filetypes),
-            commands: to_unique_map(pack.load_opt.commands),
-            lazys: to_unique_vector(pack.load_opt.lazys),
+            depends: to_unique_map(specs.load_opt.depends),
+            depend_bundles: to_unique_map(specs.load_opt.depend_bundles),
+            modules: to_unique_map(specs.load_opt.modules),
+            events: to_unique_map(specs.load_opt.events),
+            filetypes: to_unique_map(specs.load_opt.filetypes),
+            commands: to_unique_map(specs.load_opt.commands),
+            lazys: to_unique_vector(specs.load_opt.lazys),
         },
     })
 }
@@ -311,17 +311,17 @@ fn bundle_stats(root_dir: &str, payload_path: &str) -> Result<()> {
     Ok(())
 }
 
-pub fn bundle(root_dir: &str, payload_path: &str, pack: Pack) -> Result<()> {
-    let bundled_pack = bundle_pack(pack)?;
+pub fn bundle(root_dir: &str, payload_path: &str, specs: Specs) -> Result<()> {
+    let bundled_specks = bundle_specs(specs)?;
 
     bundle_setup_dir(root_dir)?;
     bundle_plugins(
         root_dir,
-        bundled_pack.start_plugins,
-        bundled_pack.opt_plugins,
-        bundled_pack.bundles,
+        bundled_specks.start_plugins,
+        bundled_specks.opt_plugins,
+        bundled_specks.bundles,
     )?;
-    bundle_load_options(root_dir, bundled_pack.load_opt)?;
+    bundle_load_options(root_dir, bundled_specks.load_opt)?;
     bundle_stats(root_dir, payload_path)?;
 
     Ok(())
@@ -330,7 +330,6 @@ pub fn bundle(root_dir: &str, payload_path: &str, pack: Pack) -> Result<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use rstest::rstest;
 
     #[test]
     fn bundle_start() {
