@@ -6,7 +6,7 @@ use std::io::Write;
 use crate::collection_util::{to_unique_map, to_unique_vector};
 use crate::constants::{dir, file, Language};
 use crate::lua::to_lua_table;
-use crate::unpack::{Bundle, LoadingOptions, OptPlugin, Pack, PluginConfig, StartPlugin};
+use crate::content::{Bundle, LoadingOptions, OptPlugin, Specs, PluginConfig, StartPlugin};
 
 trait Bundleable
 where
@@ -88,11 +88,11 @@ where
         .collect()
 }
 
-fn bundle_pack(pack: Pack) -> Result<Pack> {
+fn bundle_pack(pack: Specs) -> Result<Specs> {
     let start_plugins = bundle_vector(pack.start_plugins)?;
     let opt_plugins = bundle_vector(pack.opt_plugins)?;
     let bundles = bundle_vector(pack.bundles)?;
-    Ok(Pack {
+    Ok(Specs {
         start_plugins,
         opt_plugins,
         bundles,
@@ -311,7 +311,7 @@ fn bundle_stats(root_dir: &str, payload_path: &str) -> Result<()> {
     Ok(())
 }
 
-pub fn bundle(root_dir: &str, payload_path: &str, pack: Pack) -> Result<()> {
+pub fn bundle(root_dir: &str, payload_path: &str, pack: Specs) -> Result<()> {
     let bundled_pack = bundle_pack(pack)?;
 
     bundle_setup_dir(root_dir)?;
@@ -330,7 +330,6 @@ pub fn bundle(root_dir: &str, payload_path: &str, pack: Pack) -> Result<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use rstest::rstest;
 
     #[test]
     fn bundle_start() {

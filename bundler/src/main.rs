@@ -6,11 +6,11 @@ mod collection_util;
 mod constants;
 mod lua;
 mod payload;
-mod unpack;
+mod content;
 
 use crate::bundler::bundle;
 use crate::payload::Payload;
-use crate::unpack::unpack;
+use crate::content::unpack;
 use std::{env, fs};
 
 fn main() {
