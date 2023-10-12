@@ -299,7 +299,7 @@ in {
 
             cfgFiles = mkDerivation {
               pname = "bundler-nvim-config";
-              version = "1.0.0";
+              version = "1.1.0";
               phases = [ "installPhase" ];
               installPhase = ''
                 mkdir $out
