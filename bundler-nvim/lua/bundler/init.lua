@@ -1,9 +1,5 @@
 ---@class Logger
 local log = require("bundler.log")
-log.new({
-	plugin = "bundler-nvim",
-	level = "info",
-}, true)
 
 --- utils.
 local au = vim.api.nvim_create_autocmd
@@ -27,6 +23,11 @@ M.new = function(opts)
 	local self = setmetatable({}, { __index = M })
 	self.root = opts.root
 	self.lazy_time = opts.lazy_time
+	log.new({
+		plugin = "bundler-nvim",
+		level = opts.log_level,
+	}, true)
+
 	return self
 end
 
