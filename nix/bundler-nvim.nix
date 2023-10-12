@@ -2,7 +2,7 @@
   bundler-nvim = {
     package = pkgs.vimUtils.buildVimPlugin {
       pname = "bundler-nvim";
-      version = "0.1.0";
+      version = "1.0.0";
       src = ./../bundler-nvim;
     };
   };
