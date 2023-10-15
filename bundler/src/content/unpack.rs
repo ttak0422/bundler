@@ -261,6 +261,9 @@ fn unpack_opt_plugin_load_options<'a>(
                 if cfg.lazy {
                     load_opt_acc.lazys.push(id);
                 }
+                if cfg.use_denops {
+                    load_opt_acc.denops_clients.push(id);
+                }
                 unpack_opt_plugin_load_options(
                     config::LoadingOptions {
                         depends,
@@ -402,6 +405,7 @@ pub fn unpack<'a>(payload: &'a payload::Payload) -> config::Specs<'a> {
     let load_opt = unpack_bundle_load_options(load_opt, &id_map, &payload.cfg.bundles);
 
     config::Specs {
+        id_map,
         start_plugins,
         opt_plugins,
         bundles,
@@ -697,6 +701,7 @@ mod tests {
             filetypes: HashMap::from([]),
             commands: HashMap::from([]),
             lazys: vec![],
+            denops_clients: vec![],
         };
 
         let act = super::unpack_opt_plugin_load_options(
@@ -730,6 +735,7 @@ mod tests {
             filetypes: vec![filetype_name.to_string()],
             commands: vec![command_name.to_string()],
             lazy: true,
+            use_denops: true,
             ..Default::default()
         });
         let exp = config::LoadingOptions {
@@ -740,6 +746,7 @@ mod tests {
             filetypes: HashMap::from([(filetype_name, vec![name1])]),
             commands: HashMap::from([(command_name, vec![name1])]),
             lazys: vec![name1],
+            denops_clients: vec![name1],
         };
 
         let act = super::unpack_opt_plugin_load_options(
@@ -792,6 +799,7 @@ mod tests {
             filetypes: HashMap::from([(filetype_name, vec![bundle_name])]),
             commands: HashMap::from([(command_name, vec![bundle_name])]),
             lazys: vec![bundle_name],
+            denops_clients: vec![],
         };
 
         let act =

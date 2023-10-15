@@ -24,4 +24,5 @@ pub struct PluginConfig {
     pub filetypes: Vec<String>,
     pub commands: Vec<String>,
     pub lazy: bool,
+    pub use_denops: bool,
 }

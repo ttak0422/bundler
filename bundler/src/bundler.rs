@@ -1,12 +1,13 @@
 use anyhow::{bail, Result};
 use itertools::Itertools;
+use std::collections::HashMap;
 use std::fs::{create_dir, File};
 use std::io::Write;
 
 use crate::collection_util::{to_unique_map, to_unique_vector};
 use crate::constants::{dir, file, Language};
-use crate::lua::to_lua_table;
-use crate::content::{Bundle, LoadingOptions, OptPlugin, Specs, PluginConfig, StartPlugin};
+use crate::content::{Bundle, LoadingOptions, OptPlugin, PluginConfig, Specs, StartPlugin};
+use crate::lua::{to_lua_flag_table, to_lua_table};
 
 trait Bundleable
 where
@@ -93,6 +94,7 @@ fn bundle_specs(specs: Specs) -> Result<Specs> {
     let opt_plugins = bundle_vector(specs.opt_plugins)?;
     let bundles = bundle_vector(specs.bundles)?;
     Ok(Specs {
+        id_map: specs.id_map,
         start_plugins,
         opt_plugins,
         bundles,
@@ -104,6 +106,7 @@ fn bundle_specs(specs: Specs) -> Result<Specs> {
             filetypes: to_unique_map(specs.load_opt.filetypes),
             commands: to_unique_map(specs.load_opt.commands),
             lazys: to_unique_vector(specs.load_opt.lazys),
+            denops_clients: to_unique_vector(specs.load_opt.denops_clients),
         },
     })
 }
@@ -163,6 +166,7 @@ fn bundle_setup_dir(root_dir: &str) -> Result<()> {
         dir::EVENTS,
         dir::FILETYPES,
         dir::COMMANDS,
+        dir::RTP,
     ]
     .iter()
     {
@@ -302,12 +306,28 @@ fn bundle_load_options(root_dir: &str, load_opt: LoadingOptions) -> Result<()> {
     let mut lazy_file = File::create(String::from(root_dir) + "/" + file::LAZYS)?;
     write!(lazy_file, "return {}", to_lua_table(&load_opt.lazys))?;
 
+    // denops
+    let mut denops_file = File::create(String::from(root_dir) + "/" + file::DENOPS)?;
+    write!(
+        denops_file,
+        "return {}",
+        to_lua_flag_table(&load_opt.denops_clients, true)
+    )?;
+
     Ok(())
 }
 
 fn bundle_stats(root_dir: &str, payload_path: &str) -> Result<()> {
     let mut payload = File::create(String::from(root_dir) + "/" + file::PAYLOAD)?;
     write!(payload, "return \"{}\"", payload_path)?;
+    Ok(())
+}
+
+fn bundle_rtp(root_dir: &str, id_map: &HashMap<&str, &str>) -> Result<()> {
+    for (full_path, id) in id_map {
+        let mut file = File::create(String::from(root_dir) + "/" + dir::RTP + "/" + id)?;
+        write!(file, "return \"{}\"", full_path)?;
+    }
     Ok(())
 }
 
@@ -323,6 +343,7 @@ pub fn bundle(root_dir: &str, payload_path: &str, specs: Specs) -> Result<()> {
     )?;
     bundle_load_options(root_dir, bundled_specks.load_opt)?;
     bundle_stats(root_dir, payload_path)?;
+    bundle_rtp(root_dir, &bundled_specks.id_map)?;
 
     Ok(())
 }
