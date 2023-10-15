@@ -51,10 +51,13 @@ pub struct LoadingOptions<'a> {
     pub filetypes: HashMap<&'a str, Vec<&'a str>>,
     pub commands: HashMap<&'a str, Vec<&'a str>>,
     pub lazys: Vec<&'a str>,
+    pub denops_clients: Vec<&'a str>,
 }
 
 #[derive(Debug)]
 pub struct Specs<'a> {
+    /// key is package (e.g. `/nix/store/...`), value is id.
+    pub id_map: HashMap<&'a str, &'a str>,
     pub start_plugins: Vec<StartPlugin<'a>>,
     pub opt_plugins: Vec<OptPlugin<'a>>,
     pub bundles: Vec<Bundle<'a>>,

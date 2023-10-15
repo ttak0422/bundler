@@ -58,6 +58,7 @@ mod tests {
                 filetypes: vec![String::from("filled-filetype")],
                 commands: vec![String::from("filled-command")],
                 lazy: true,
+                use_denops: true,
             })
         }
 
@@ -86,6 +87,7 @@ mod tests {
                 filetypes: vec![String::from("filled-detail-filetype")],
                 commands: vec![String::from("filled-detail-command")],
                 lazy: false,
+                use_denops: true,
             })
         }
 

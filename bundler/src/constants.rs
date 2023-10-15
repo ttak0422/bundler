@@ -17,6 +17,7 @@ pub mod dir {
     pub static EVENTS: &str = "events";
     pub static FILETYPES: &str = "filetypes";
     pub static COMMANDS: &str = "commands";
+    pub static RTP: &str = "rtp";
 }
 
 pub mod file {
@@ -26,5 +27,6 @@ pub mod file {
     pub static FILETYPES: &str = "filetype_keys";
     pub static COMMANDS: &str = "command_keys";
     pub static LAZYS: &str = "lazys";
+    pub static DENOPS: &str = "denops";
     pub static PAYLOAD: &str = "payload";
 }
