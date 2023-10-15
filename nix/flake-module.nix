@@ -121,6 +121,7 @@ in {
                 default = [ ];
               };
               lazy = mkEnableOption "lazy";
+              useDenops = mkEnableOption "useDenops";
             };
           };
           bundleConfig = types.submodule {
@@ -180,6 +181,7 @@ in {
                 default = [ ];
               };
               lazy = mkEnableOption "lazy";
+              useDenops = mkEnableOption "useDenops";
             };
           };
         in {
