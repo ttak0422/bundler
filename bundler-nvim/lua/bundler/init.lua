@@ -14,6 +14,8 @@ end
 ---@class Bundler
 local M = {}
 
+M.denops_plugins = {}
+
 M.loaded_plugins = {}
 
 M.loaded_modules = {}
@@ -80,6 +82,7 @@ M.setup_loader = function(self)
 	vim.defer_fn(function()
 		self:load_plugins(self.root .. "/lazys")
 	end, self.lazy_time)
+	self.denops_plugins = dofile(self.root .. "/denops")
 	log.debug("[setup_loader] end")
 end
 
@@ -88,9 +91,27 @@ M.configure = function(self, id, is_pre)
 	local dir = is_pre and "/pre_config/" or "/config/"
 	local ok, err_msg = pcall(dofile, self.root .. dir .. id)
 	if not ok then
-		log.error(id, " configure error: ", err_msg or "-- no msg --")
+		log.error(id, "configure error:", err_msg or "-- no msg --")
 	end
 	log.debug(is_pre and "[pre_config]" or "[config]", "end", id)
+end
+
+M.load_denops = function(self, id)
+	local path = dofile(self.root .. "/rtp/" .. id)
+	local candidates = vim.fn.globpath(path, "denops/*/main.ts", true, true)
+	for _, c in ipairs(candidates) do
+		local denops_plugin = vim.fn.fnamemodify(c, ":h:t")
+		local ok, status = pcall(vim.fn["denops#server#status"])
+		if not ok then
+			log.error(id, "load error: `denops.vim` has not been loaded yet.")
+			return
+		end
+		if status == "running" then
+			-- Note: denops#plugin#register() may fail
+			pcall(vim.fn["denops#plugin#register"], denops_plugin, { mode = "skip" })
+		end
+		vim.fn["denops#plugin#wait"](denops_plugin)
+	end
 end
 
 M.load_plugin = function(self, id)
@@ -102,6 +123,9 @@ M.load_plugin = function(self, id)
 		self:load_plugins(self.root .. "/depend_bundles/" .. id)
 		self:load_plugins(self.root .. "/plugins/" .. id)
 		packadd(self.root .. "/plugin/" .. id)
+		if self.denops_plugins[id] then
+			self:load_denops(id)
+		end
 		self:configure(id, false)
 		log.debug("[load_plugin] end", id)
 	end
