@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use serde::Deserialize;
 use serde_json::Value;
 
@@ -56,6 +58,13 @@ pub struct Meta {
 #[derive(Debug, Default, Deserialize, Clone, PartialEq, Eq)]
 #[cfg_attr(test, derive(Builder))]
 #[serde(rename_all = "camelCase")]
+pub struct After {
+    pub ftplugin: HashMap<String, String>,
+}
+
+#[derive(Debug, Default, Deserialize, Clone, PartialEq, Eq)]
+#[cfg_attr(test, derive(Builder))]
+#[serde(rename_all = "camelCase")]
 pub struct BundlerConfig {
     pub start_plugins: Vec<start::VimPlugin>,
     pub opt_plugins: Vec<opt::VimPlugin>,
@@ -64,6 +73,7 @@ pub struct BundlerConfig {
     pub with_node_js: bool,
     pub with_python3: bool,
     pub with_ruby: bool,
+    pub after: After,
 }
 
 #[derive(Debug, Default, Deserialize, PartialEq, Eq)]

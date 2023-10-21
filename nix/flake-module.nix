@@ -28,6 +28,19 @@ in {
             description = "Extra configuration (lua) to add to top of init.vim";
             default = "";
           };
+          after = {
+            ftplugin = mkOption {
+              type = with types; attrsOf lines;
+              description = "after/ftplugin configuration (viml)";
+              example = ''
+                {
+                  lua = "setlocal expandtab";
+                  nix = builtins.readFile ./path/to/after/ftplugin/nix.vim;
+                  # ...
+                }
+              '';
+            };
+          };
           withNodeJs = mkEnableOption "withNodeJs" // {
             description = "Alias for neovim.withNodeJs";
           };
@@ -319,6 +332,7 @@ in {
                 ${cfg.extraConfig}
                 lua << EOF
                 ${cfg.extraLuaConfig}
+                vim.opt.runtimepath:append("${cfgFiles}/after");
                 require("bundler").new({
                   root = "${cfgFiles}",
                   lazy_time = ${toString cfg.lazyTime},

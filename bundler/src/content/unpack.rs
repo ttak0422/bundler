@@ -403,6 +403,14 @@ pub fn unpack<'a>(payload: &'a payload::Payload) -> config::Specs<'a> {
         &payload_opt_plugins,
     );
     let load_opt = unpack_bundle_load_options(load_opt, &id_map, &payload.cfg.bundles);
+    let ftplugin: HashMap<&str, &str> = payload
+        .cfg
+        .after
+        .ftplugin
+        .iter()
+        .map(|(k, v)| (k.as_str(), v.as_str()))
+        .collect();
+    let after_opt = config::AfterOptions { ftplugin };
 
     config::Specs {
         id_map,
@@ -410,6 +418,7 @@ pub fn unpack<'a>(payload: &'a payload::Payload) -> config::Specs<'a> {
         opt_plugins,
         bundles,
         load_opt,
+        after_opt,
     }
 }
 
