@@ -18,6 +18,8 @@ pub mod dir {
     pub static FILETYPES: &str = "filetypes";
     pub static COMMANDS: &str = "commands";
     pub static RTP: &str = "rtp";
+    pub static AFTER: &str = "after";
+    pub static FTPLUGIN: &str = "ftplugin";
 }
 
 pub mod file {

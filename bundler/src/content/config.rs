@@ -54,6 +54,11 @@ pub struct LoadingOptions<'a> {
     pub denops_clients: Vec<&'a str>,
 }
 
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct AfterOptions<'a> {
+    pub ftplugin: HashMap<&'a str, &'a str>,
+}
+
 #[derive(Debug)]
 pub struct Specs<'a> {
     /// key is package (e.g. `/nix/store/...`), value is id.
@@ -62,4 +67,5 @@ pub struct Specs<'a> {
     pub opt_plugins: Vec<OptPlugin<'a>>,
     pub bundles: Vec<Bundle<'a>>,
     pub load_opt: LoadingOptions<'a>,
+    pub after_opt: AfterOptions<'a>,
 }

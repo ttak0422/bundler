@@ -6,7 +6,7 @@ use std::io::Write;
 
 use crate::collection_util::{to_unique_map, to_unique_vector};
 use crate::constants::{dir, file, Language};
-use crate::content::{Bundle, LoadingOptions, OptPlugin, PluginConfig, Specs, StartPlugin};
+use crate::content::{Bundle, LoadingOptions, OptPlugin, PluginConfig, Specs, StartPlugin, AfterOptions};
 use crate::lua::{to_lua_flag_table, to_lua_table};
 
 trait Bundleable
@@ -108,6 +108,7 @@ fn bundle_specs(specs: Specs) -> Result<Specs> {
             lazys: to_unique_vector(specs.load_opt.lazys),
             denops_clients: to_unique_vector(specs.load_opt.denops_clients),
         },
+        after_opt: specs.after_opt,
     })
 }
 
@@ -155,22 +156,24 @@ fn mk_plugin_config_code(cfg: &PluginConfig) -> String {
 }
 
 fn bundle_setup_dir(root_dir: &str) -> Result<()> {
-    for d in [
-        dir::PLUGIN,
-        dir::PLUGINS,
-        dir::PRE_CONFIG,
-        dir::CONFIG,
-        dir::DEPENDS,
-        dir::DEPEND_BUNDLES,
-        dir::MODULES,
-        dir::EVENTS,
-        dir::FILETYPES,
-        dir::COMMANDS,
-        dir::RTP,
+    for ds in [
+        vec![dir::PLUGIN],
+        vec![dir::PLUGINS],
+        vec![dir::PRE_CONFIG],
+        vec![dir::CONFIG],
+        vec![dir::DEPENDS],
+        vec![dir::DEPEND_BUNDLES],
+        vec![dir::MODULES],
+        vec![dir::EVENTS],
+        vec![dir::FILETYPES],
+        vec![dir::COMMANDS],
+        vec![dir::RTP],
+        vec![dir::AFTER],
+        vec![dir::AFTER, dir::FTPLUGIN],
     ]
     .iter()
     {
-        create_dir(String::from(root_dir) + "/" + d)?;
+        create_dir(String::from(root_dir) + "/" + &ds.join("/"))?;
     }
     Ok(())
 }
@@ -331,6 +334,15 @@ fn bundle_rtp(root_dir: &str, id_map: &HashMap<&str, &str>) -> Result<()> {
     Ok(())
 }
 
+fn bundle_after_opt(root_dir: &str, after_opt: &AfterOptions) -> Result<()> {
+    // ftplugin
+    for (ft, config) in &after_opt.ftplugin {
+        let mut file = File::create(String::from(root_dir) + "/" + dir::AFTER + "/" + dir::FTPLUGIN + "/" + ft + ".vim")?;
+        write!(file, "{}", config)?;
+    }
+    Ok(())
+}
+
 pub fn bundle(root_dir: &str, payload_path: &str, specs: Specs) -> Result<()> {
     let bundled_specks = bundle_specs(specs)?;
 
@@ -344,7 +356,7 @@ pub fn bundle(root_dir: &str, payload_path: &str, specs: Specs) -> Result<()> {
     bundle_load_options(root_dir, bundled_specks.load_opt)?;
     bundle_stats(root_dir, payload_path)?;
     bundle_rtp(root_dir, &bundled_specks.id_map)?;
-
+    bundle_after_opt(root_dir, &bundled_specks.after_opt)?;
     Ok(())
 }
 
