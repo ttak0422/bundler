@@ -150,7 +150,7 @@ fn mk_plugin_config_code(cfg: &PluginConfig) -> String {
             format!("{}\n{}", args_code, cfg.code)
         }
         Language::Fennel => {
-            panic!("fennel is not supported yet")
+            panic!("fennel is not supported. use other plugin.")
         }
     }
 }
