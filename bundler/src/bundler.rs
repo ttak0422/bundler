@@ -26,7 +26,7 @@ where
         let self_modified = self.modified();
         let other_modified = other.modified();
         if self_modified && other_modified && self != other {
-            bail!("Confliced {}\n{:?}\n{:?}.", self.id(), self, other)
+            bail!("Conflicted {}\n{:?}\n{:?}.", self.id(), self, other)
         } else if self_modified {
             Ok(self)
         } else {
@@ -209,6 +209,7 @@ fn bundle_plugins(
     // startup
     let mut startup = File::create(String::from(root_dir) + "/" + file::STARTUP)?;
     for plugin in &start_plugins {
+
         write!(startup, "{}", mk_plugin_config_code(&plugin.startup))?;
     }
     for plugin in &opt_plugins {
