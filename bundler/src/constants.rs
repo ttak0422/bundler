@@ -37,6 +37,7 @@ impl fmt::Display for Target {
 pub mod dir {
     pub static PLUGIN: &str = "plugin";
     pub static PLUGINS: &str = "plugins";
+    pub static STARTUP: &str = "startup";
     pub static PRE_CONFIG: &str = "pre_config";
     pub static CONFIG: &str = "config";
     pub static DEPENDS: &str = "depends";
@@ -51,11 +52,11 @@ pub mod dir {
 }
 
 pub mod file {
-    pub static STARTUP: &str = "startup";
-    pub static MODULES: &str = "module_keys";
-    pub static EVENTS: &str = "event_keys";
-    pub static FILETYPES: &str = "filetype_keys";
-    pub static COMMANDS: &str = "command_keys";
+    pub static STARTUP_KEYS: &str = "startup_keys";
+    pub static MODULE_KEYS: &str = "module_keys";
+    pub static EVENT_KEYS: &str = "event_keys";
+    pub static FILETYPE_KEYS: &str = "filetype_keys";
+    pub static COMMAND_KEYS: &str = "command_keys";
     pub static LAZYS: &str = "lazys";
     pub static DENOPS: &str = "denops";
     pub static PAYLOAD: &str = "payload";

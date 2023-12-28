@@ -35,8 +35,9 @@ end
 
 M.setup_loader = function(self)
 	log.debug("[setup_loader] start", self.root)
-	dofile(self.root .. "/startup")
-
+	for _, id in ipairs(dofile(self.root .. "/startup_keys")) do
+		self:startup(id)
+	end
 	for _, ev in ipairs(dofile(self.root .. "/event_keys")) do
 		log.debug("ev:", ev)
 		au({ ev }, {
@@ -86,7 +87,16 @@ M.setup_loader = function(self)
 	log.debug("[setup_loader] end")
 end
 
-M.configure = function(self, id, is_pre)
+M.startup = function(self, id)
+	log.debug("[startup] start", id)
+	local ok, err_msg = pcall(dofile, self.root .. "/startup/" .. id)
+	if not ok then
+		log.error(id, "startup error:", err_msg or "-- no msg --")
+	end
+	log.debug("[startup] end", id)
+end
+
+M.config = function(self, id, is_pre)
 	log.debug(is_pre and "[pre_config]" or "[config]", "start", id)
 	local dir = is_pre and "/pre_config/" or "/config/"
 	local ok, err_msg = pcall(dofile, self.root .. dir .. id)
@@ -118,7 +128,7 @@ M.load_plugin = function(self, id)
 	if not self.loaded_plugins[id] then
 		log.debug("[load_plugin] start", id)
 		self.loaded_plugins[id] = true
-		self:configure(id, true)
+		self:config(id, true)
 		self:load_plugins(self.root .. "/depends/" .. id)
 		self:load_plugins(self.root .. "/depend_bundles/" .. id)
 		self:load_plugins(self.root .. "/plugins/" .. id)
@@ -126,7 +136,7 @@ M.load_plugin = function(self, id)
 		if self.denops_plugins[id] then
 			self:load_denops(id)
 		end
-		self:configure(id, false)
+		self:config(id, false)
 		log.debug("[load_plugin] end", id)
 	end
 end
