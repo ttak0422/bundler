@@ -6,7 +6,9 @@ use std::io::Write;
 
 use crate::collection_util::{to_unique_map, to_unique_vector};
 use crate::constants::{dir, file, Language};
-use crate::content::{Bundle, LoadingOptions, OptPlugin, PluginConfig, Specs, StartPlugin, AfterOptions};
+use crate::content::{
+    AfterOptions, Bundle, LoadingOptions, OptPlugin, PluginConfig, Specs, StartPlugin,
+};
 use crate::lua::{to_lua_flag_table, to_lua_table};
 
 trait Bundleable
@@ -26,7 +28,7 @@ where
         let self_modified = self.modified();
         let other_modified = other.modified();
         if self_modified && other_modified && self != other {
-            bail!("Confliced {}\n{:?}\n{:?}.", self.id(), self, other)
+            bail!("Conflicted {}\n{:?}\n{:?}.", self.id(), self, other)
         } else if self_modified {
             Ok(self)
         } else {
@@ -150,7 +152,7 @@ fn mk_plugin_config_code(cfg: &PluginConfig) -> String {
             format!("{}\n{}", args_code, cfg.code)
         }
         Language::Fennel => {
-            panic!("fennel is not supported yet")
+            panic!("fennel is not supported. use other plugin.")
         }
     }
 }
@@ -160,6 +162,7 @@ fn bundle_setup_dir(root_dir: &str) -> Result<()> {
         vec![dir::PLUGIN],
         vec![dir::PLUGINS],
         vec![dir::PRE_CONFIG],
+        vec![dir::STARTUP],
         vec![dir::CONFIG],
         vec![dir::DEPENDS],
         vec![dir::DEPEND_BUNDLES],
@@ -207,15 +210,37 @@ fn bundle_plugins(
     }
 
     // startup
-    let mut startup = File::create(String::from(root_dir) + "/" + file::STARTUP)?;
-    for plugin in &start_plugins {
-        write!(startup, "{}", mk_plugin_config_code(&plugin.startup))?;
+    let startup_configs = start_plugins
+        .iter()
+        .filter(|p| p.startup.code != "")
+        .collect::<Vec<_>>();
+    let opt_startup_configs = opt_plugins
+        .iter()
+        .filter(|p| p.startup.code != "")
+        .collect::<Vec<_>>();
+    let bundle_startup_configs = bundles
+        .iter()
+        .filter(|p| p.startup.code != "")
+        .collect::<Vec<_>>();
+    let startup_config_ids = &startup_configs
+        .iter()
+        .map(|p| p.id)
+        .chain(opt_startup_configs.iter().map(|p| p.id))
+        .chain(bundle_startup_configs.iter().map(|p| p.id))
+        .collect::<Vec<_>>();
+    let mut startup_keys = File::create(String::from(root_dir) + "/" + file::STARTUP_KEYS)?;
+    write!(startup_keys, "return {}", to_lua_table(&startup_config_ids))?;
+    for cfg in &startup_configs {
+        let mut file = File::create(String::from(root_dir) + "/" + dir::STARTUP + "/" + &cfg.id)?;
+        write!(file, "{}", mk_plugin_config_code(&cfg.startup))?;
     }
-    for plugin in &opt_plugins {
-        write!(startup, "{}", mk_plugin_config_code(&plugin.startup))?;
+    for cfg in &opt_startup_configs {
+        let mut file = File::create(String::from(root_dir) + "/" + dir::STARTUP + "/" + &cfg.id)?;
+        write!(file, "{}", mk_plugin_config_code(&cfg.startup))?;
     }
-    for bundle in &bundles {
-        write!(startup, "{}", mk_plugin_config_code(&bundle.startup))?;
+    for cfg in &bundle_startup_configs {
+        let mut file = File::create(String::from(root_dir) + "/" + dir::STARTUP + "/" + &cfg.id)?;
+        write!(file, "{}", mk_plugin_config_code(&cfg.startup))?;
     }
 
     // config
@@ -257,7 +282,7 @@ fn bundle_load_options(root_dir: &str, load_opt: LoadingOptions) -> Result<()> {
     }
 
     // modules
-    let mut modules = File::create(String::from(root_dir) + "/" + file::MODULES)?;
+    let mut modules = File::create(String::from(root_dir) + "/" + file::MODULE_KEYS)?;
     write!(
         modules,
         "return {}",
@@ -269,7 +294,7 @@ fn bundle_load_options(root_dir: &str, load_opt: LoadingOptions) -> Result<()> {
     }
 
     // events
-    let mut events = File::create(String::from(root_dir) + "/" + file::EVENTS)?;
+    let mut events = File::create(String::from(root_dir) + "/" + file::EVENT_KEYS)?;
     write!(
         events,
         "return {}",
@@ -281,7 +306,7 @@ fn bundle_load_options(root_dir: &str, load_opt: LoadingOptions) -> Result<()> {
     }
 
     // filetypes
-    let mut filetypes = File::create(String::from(root_dir) + "/" + file::FILETYPES)?;
+    let mut filetypes = File::create(String::from(root_dir) + "/" + file::FILETYPE_KEYS)?;
     write!(
         filetypes,
         "return {}",
@@ -294,7 +319,7 @@ fn bundle_load_options(root_dir: &str, load_opt: LoadingOptions) -> Result<()> {
     }
 
     // commands
-    let mut commands = File::create(String::from(root_dir) + "/" + file::COMMANDS)?;
+    let mut commands = File::create(String::from(root_dir) + "/" + file::COMMAND_KEYS)?;
     write!(
         commands,
         "return {}",
@@ -337,7 +362,9 @@ fn bundle_rtp(root_dir: &str, id_map: &HashMap<&str, &str>) -> Result<()> {
 fn bundle_after_opt(root_dir: &str, after_opt: &AfterOptions) -> Result<()> {
     // ftplugin
     for (ft, config) in &after_opt.ftplugin {
-        let mut file = File::create(String::from(root_dir) + "/" + dir::AFTER + "/" + dir::FTPLUGIN + "/" + ft + ".vim")?;
+        let mut file = File::create(
+            String::from(root_dir) + "/" + dir::AFTER + "/" + dir::FTPLUGIN + "/" + ft + ".vim",
+        )?;
         write!(file, "{}", config)?;
     }
     Ok(())
