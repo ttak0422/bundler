@@ -71,7 +71,8 @@
             };
             devShells.default = pkgs.mkShell {
               inherit (self'.checks.pre-commit-check) shellHook;
-              packages = [ toolchain pkgs.rust-analyzer-nightly ]
+              packages = [ toolchain ]
+                ++ (with pkgs; [ mdbook rust-analyzer-nightly ])
                 ++ (with pkgs; lib.optional stdenv.isDarwin libiconv);
               inputsFrom = [ bundler ];
               RUST_BACKTRACE = "full";

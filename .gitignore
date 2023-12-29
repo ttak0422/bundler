@@ -13,3 +13,6 @@
 /.pre-commit-config.yaml
 
 bundler/target
+
+# mdbook
+book

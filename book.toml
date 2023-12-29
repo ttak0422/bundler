@@ -1,0 +1,6 @@
+[book]
+authors = ["ttak0422"]
+language = "en"
+multilingual = false
+src = "docs"
+title = "bundler"
