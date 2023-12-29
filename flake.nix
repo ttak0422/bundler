@@ -24,12 +24,7 @@
     };
     crane = {
       url = "github:ipetkov/crane";
-      inputs = {
-        flake-utils.follows = "flake-utils";
-        nixpkgs.follows = "nixpkgs";
-        flake-compat.follows = "flake-compat";
-        rust-overlay.follows = "";
-      };
+      inputs.nixpkgs.follows = "nixpkgs";
     };
   };
 
