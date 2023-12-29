@@ -36,7 +36,6 @@ pub enum Lang {
     Vim,
     #[default]
     Lua,
-    Fennel,
 }
 
 #[derive(Debug, Default, Deserialize, Clone, PartialEq, Eq)]

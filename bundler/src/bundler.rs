@@ -134,9 +134,6 @@ fn mk_args_code(cfg: &PluginConfig) -> Option<String> {
         Language::Lua => {
             format!("local args = vim.json.decode([[{}]])", args_json)
         }
-        Language::Fennel => {
-            panic!("fennel is not supported yet")
-        }
     };
     Some(args_code)
 }
@@ -150,9 +147,6 @@ fn mk_plugin_config_code(cfg: &PluginConfig) -> String {
         Language::Lua => {
             let args_code = mk_args_code(cfg).unwrap_or("".to_string());
             format!("{}\n{}", args_code, cfg.code)
-        }
-        Language::Fennel => {
-            panic!("fennel is not supported. use other plugin.")
         }
     }
 }

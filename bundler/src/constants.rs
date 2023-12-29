@@ -5,7 +5,6 @@ pub enum Language {
     Vim,
     #[default]
     Lua,
-    Fennel,
 }
 
 impl fmt::Display for Language {
@@ -13,7 +12,6 @@ impl fmt::Display for Language {
         match &self {
             Language::Vim => write!(f, "vim"),
             Language::Lua => write!(f, "lua"),
-            Language::Fennel => write!(f, "fennel"),
         }
     }
 }

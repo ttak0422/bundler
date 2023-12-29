@@ -55,8 +55,7 @@ in {
           pluginConfigDetail = types.submodule {
             options = {
               lang = mkOption {
-                # WIP: support "fennel"
-                type = types.enum [ "vim" "lua" "fennel" ];
+                type = types.enum [ "vim" "lua" ];
                 default = "lua";
               };
               code = mkOption {

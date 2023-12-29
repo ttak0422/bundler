@@ -8,7 +8,6 @@ fn mapping_lang(lang: &payload::Lang) -> Language {
     match lang {
         payload::Lang::Vim => Language::Vim,
         payload::Lang::Lua => Language::Lua,
-        payload::Lang::Fennel => Language::Fennel,
     }
 }
 
