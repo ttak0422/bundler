@@ -15,19 +15,3 @@ impl fmt::Display for Language {
         }
     }
 }
-
-#[derive(Debug, Clone, Default, PartialEq, Eq, PartialOrd, Ord)]
-pub enum Target {
-    Vim,
-    #[default]
-    Neovim,
-}
-
-impl fmt::Display for Target {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match &self {
-            Target::Vim => write!(f, "vim"),
-            Target::Neovim => write!(f, "neovim"),
-        }
-    }
-}
