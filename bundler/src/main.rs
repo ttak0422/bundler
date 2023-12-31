@@ -4,9 +4,9 @@ extern crate derive_builder;
 mod bundler;
 mod collection_util;
 mod constants;
-mod lua;
-mod payload;
 mod content;
+mod payload;
+mod util;
 
 use crate::bundler::bundle;
 use crate::payload::Payload;

@@ -9,7 +9,7 @@ use crate::constants::{dir, file, Language};
 use crate::content::{
     AfterOption, EagerPlugin, LazyGroup, LazyPlugin, LoadOption, PluginConfig, Specs,
 };
-use crate::lua::{to_lua_flag_table, to_lua_table};
+use crate::util::lua::{to_lua_flag_table, to_lua_table};
 
 trait Bundleable
 where
