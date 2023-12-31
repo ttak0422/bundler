@@ -39,6 +39,7 @@ in {
                   # ...
                 }
               '';
+              default = { };
             };
           };
           withNodeJs = mkEnableOption "withNodeJs" // {
