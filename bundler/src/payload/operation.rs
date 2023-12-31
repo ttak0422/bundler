@@ -36,7 +36,7 @@ mod tests {
     mod mother {
         use crate::payload::{
             common::Language,
-            core::{Config, DetailConfig},
+            config::{Config, DetailConfig},
             lazy::{PluginConfig, VimPluginPackage},
             LazyGroup,
         };

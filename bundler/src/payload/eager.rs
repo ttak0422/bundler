@@ -1,6 +1,6 @@
 use serde::Deserialize;
 
-use crate::payload::core::Config;
+use crate::payload::config::Config;
 
 #[derive(Debug, Deserialize, Clone, PartialEq, Eq)]
 #[serde(untagged)]

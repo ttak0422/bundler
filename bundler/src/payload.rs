@@ -1,6 +1,6 @@
 pub use crate::payload::{
     common::Language,
-    core::{BundlerConfig, Config, DetailConfig, IdMapElement, Meta, Payload},
+    config::{BundlerConfig, Config, DetailConfig, IdMapElement, Meta, Payload},
     eager::{PluginConfig as PluginStartConfig, VimPluginPackage as VimStartPlugin},
     group::LazyGroup,
     lazy::{PluginConfig as PluginOptConfig, VimPluginPackage as VimOptPlugin},
@@ -8,7 +8,7 @@ pub use crate::payload::{
 };
 
 mod common;
-mod core;
+mod config;
 mod eager;
 mod group;
 mod lazy;
