@@ -4,7 +4,7 @@ use std::collections::HashMap;
 use std::fs::{create_dir, File};
 use std::io::Write;
 
-use crate::collection_util::{to_unique_map, to_unique_vector};
+use crate::util::collection::{to_unique_map, to_unique_vector};
 use crate::constants::{dir, file, Language};
 use crate::content::{
     AfterOption, EagerPlugin, LazyGroup, LazyPlugin, LoadOption, PluginConfig, Specs,

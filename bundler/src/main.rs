@@ -2,7 +2,6 @@
 extern crate derive_builder;
 
 mod bundler;
-mod collection_util;
 mod constants;
 mod content;
 mod payload;
