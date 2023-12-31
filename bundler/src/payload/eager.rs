@@ -4,7 +4,7 @@ use crate::payload::core::Config;
 
 #[derive(Debug, Deserialize, Clone, PartialEq, Eq)]
 #[serde(untagged)]
-pub enum VimPlugin {
+pub enum VimPluginPackage {
     SimplePackage(String),
     ConfiguredPackage(PluginConfig),
 }
@@ -14,6 +14,6 @@ pub enum VimPlugin {
 #[serde(rename_all = "camelCase")]
 pub struct PluginConfig {
     pub plugin: String,
-    pub startup: Config,
+    pub startup_config: Config,
     pub extra_packages: Vec<String>,
 }

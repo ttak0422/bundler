@@ -1,13 +1,13 @@
 pub use crate::payload::{
-    bundle::Bundle,
-    core::{BundlerConfig, Config, DetailConfig, IdPackage, Lang, Meta, Payload},
+    core::{BundlerConfig, Config, DetailConfig, IdMapElement, Language, Meta, Payload},
+    eager::{PluginConfig as PluginStartConfig, VimPluginPackage as VimStartPlugin},
+    group::LazyGroup,
+    lazy::{PluginConfig as PluginOptConfig, VimPluginPackage as VimOptPlugin},
     operation::expand,
-    opt::{PluginConfig as PluginOptConfig, VimPlugin as VimOptPlugin},
-    start::{PluginConfig as PluginStartConfig, VimPlugin as VimStartPlugin},
 };
 
-mod bundle;
 mod core;
+mod eager;
+mod group;
+mod lazy;
 mod operation;
-mod opt;
-mod start;

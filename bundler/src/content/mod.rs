@@ -1,5 +1,5 @@
 pub use crate::content::config::{
-    AfterOptions, Bundle, LoadingOptions, OptPlugin, PluginConfig, Specs, StartPlugin,
+    AfterOption, EagerPlugin, LazyGroup, LazyPlugin, LoadOption, PluginConfig, Specs,
 };
 
 pub use unpack::unpack;

@@ -24,7 +24,7 @@ M.loaded_modules = {}
 M.new = function(opts)
 	local self = setmetatable({}, { __index = M })
 	self.root = opts.root
-	self.lazy_time = opts.lazy_time
+	self.timer = opts.timer
 	log.new({
 		plugin = "bundler-nvim",
 		level = opts.log_level,
@@ -81,9 +81,9 @@ M.setup_loader = function(self)
 		end
 	end)
 	vim.defer_fn(function()
-		self:load_plugins(self.root .. "/lazys")
-	end, self.lazy_time)
-	self.denops_plugins = dofile(self.root .. "/denops")
+		self:load_plugins(self.root .. "/timer_clients")
+	end, self.timer)
+	self.denops_plugins = dofile(self.root .. "/denops_clients")
 	log.debug("[setup_loader] end")
 end
 
@@ -97,13 +97,13 @@ M.startup = function(self, id)
 end
 
 M.config = function(self, id, is_pre)
-	log.debug(is_pre and "[pre_config]" or "[config]", "start", id)
-	local dir = is_pre and "/pre_config/" or "/config/"
+	log.debug(is_pre and "[pre_config]" or "[post_config]", "start", id)
+	local dir = is_pre and "/pre_config/" or "/post_config/"
 	local ok, err_msg = pcall(dofile, self.root .. dir .. id)
 	if not ok then
 		log.error(id, "configure error:", err_msg or "-- no msg --")
 	end
-	log.debug(is_pre and "[pre_config]" or "[config]", "end", id)
+	log.debug(is_pre and "[pre_config]" or "[post_config]", "end", id)
 end
 
 M.load_denops = function(self, id)
@@ -129,8 +129,8 @@ M.load_plugin = function(self, id)
 		log.debug("[load_plugin] start", id)
 		self.loaded_plugins[id] = true
 		self:config(id, true)
-		self:load_plugins(self.root .. "/depends/" .. id)
-		self:load_plugins(self.root .. "/depend_bundles/" .. id)
+		self:load_plugins(self.root .. "/depend_plugins/" .. id)
+		self:load_plugins(self.root .. "/depend_groups/" .. id)
 		self:load_plugins(self.root .. "/plugins/" .. id)
 		packadd(self.root .. "/plugin/" .. id)
 		if self.denops_plugins[id] then

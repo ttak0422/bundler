@@ -7,7 +7,7 @@ use std::io::Write;
 use crate::collection_util::{to_unique_map, to_unique_vector};
 use crate::constants::{dir, file, Language};
 use crate::content::{
-    AfterOptions, Bundle, LoadingOptions, OptPlugin, PluginConfig, Specs, StartPlugin,
+    AfterOption, EagerPlugin, LazyGroup, LazyPlugin, LoadOption, PluginConfig, Specs,
 };
 use crate::lua::{to_lua_flag_table, to_lua_table};
 
@@ -37,39 +37,39 @@ where
     }
 }
 
-impl<'a> Bundleable for StartPlugin<'a> {
+impl<'a> Bundleable for EagerPlugin<'a> {
     fn id(&self) -> &str {
-        &self.id
+        &self.plugin_id
     }
     fn modified(&self) -> bool {
-        let default = StartPlugin {
-            id: self.id(),
+        let default = EagerPlugin {
+            plugin_id: self.id(),
             ..Default::default()
         };
         *self != default
     }
 }
 
-impl<'a> Bundleable for OptPlugin<'a> {
+impl<'a> Bundleable for LazyPlugin<'a> {
     fn id(&self) -> &str {
-        &self.id
+        &self.plugin_id
     }
     fn modified(&self) -> bool {
-        let default = OptPlugin {
-            id: self.id(),
+        let default = LazyPlugin {
+            plugin_id: self.id(),
             ..Default::default()
         };
         *self != default
     }
 }
 
-impl<'a> Bundleable for Bundle<'a> {
+impl<'a> Bundleable for LazyGroup<'a> {
     fn id(&self) -> &str {
-        &self.id
+        &self.group_id
     }
     fn modified(&self) -> bool {
-        let default = Bundle {
-            id: self.id(),
+        let default = LazyGroup {
+            group_id: self.id(),
             ..Default::default()
         };
         *self != default
@@ -92,25 +92,25 @@ where
 }
 
 fn bundle_specs(specs: Specs) -> Result<Specs> {
-    let start_plugins = bundle_vector(specs.start_plugins)?;
-    let opt_plugins = bundle_vector(specs.opt_plugins)?;
-    let bundles = bundle_vector(specs.bundles)?;
+    let start_plugins = bundle_vector(specs.eager_plugins)?;
+    let opt_plugins = bundle_vector(specs.lazy_plugins)?;
+    let bundles = bundle_vector(specs.lazy_groups)?;
     Ok(Specs {
         id_map: specs.id_map,
-        start_plugins,
-        opt_plugins,
-        bundles,
-        load_opt: LoadingOptions {
-            depends: to_unique_map(specs.load_opt.depends),
-            depend_bundles: to_unique_map(specs.load_opt.depend_bundles),
-            modules: to_unique_map(specs.load_opt.modules),
-            events: to_unique_map(specs.load_opt.events),
-            filetypes: to_unique_map(specs.load_opt.filetypes),
-            commands: to_unique_map(specs.load_opt.commands),
-            lazys: to_unique_vector(specs.load_opt.lazys),
-            denops_clients: to_unique_vector(specs.load_opt.denops_clients),
+        eager_plugins: start_plugins,
+        lazy_plugins: opt_plugins,
+        lazy_groups: bundles,
+        load_option: LoadOption {
+            depend_plugins: to_unique_map(specs.load_option.depend_plugins),
+            depend_groups: to_unique_map(specs.load_option.depend_groups),
+            on_modules: to_unique_map(specs.load_option.on_modules),
+            on_events: to_unique_map(specs.load_option.on_events),
+            on_filetypes: to_unique_map(specs.load_option.on_filetypes),
+            on_commands: to_unique_map(specs.load_option.on_commands),
+            timer_clients: to_unique_vector(specs.load_option.timer_clients),
+            denops_clients: to_unique_vector(specs.load_option.denops_clients),
         },
-        after_opt: specs.after_opt,
+        after_option: specs.after_option,
     })
 }
 
@@ -127,7 +127,7 @@ fn mk_args_code(cfg: &PluginConfig) -> Option<String> {
     if args_json == "{}" {
         return None;
     }
-    let args_code = match cfg.lang {
+    let args_code = match cfg.language {
         Language::Vim => {
             format!("let s:args = json_decode('{}')", args_json)
         }
@@ -139,7 +139,7 @@ fn mk_args_code(cfg: &PluginConfig) -> Option<String> {
 }
 
 fn mk_plugin_config_code(cfg: &PluginConfig) -> String {
-    match cfg.lang {
+    match cfg.language {
         Language::Vim => {
             let args_code = mk_args_code(cfg).unwrap_or("".to_string());
             format!("vim.cmd([[{}\n{}]])", args_code, cfg.code)
@@ -157,9 +157,9 @@ fn bundle_setup_dir(root_dir: &str) -> Result<()> {
         vec![dir::PLUGINS],
         vec![dir::PRE_CONFIG],
         vec![dir::STARTUP],
-        vec![dir::CONFIG],
-        vec![dir::DEPENDS],
-        vec![dir::DEPEND_BUNDLES],
+        vec![dir::POST_CONFIG],
+        vec![dir::DEPEND_PLUGINS],
+        vec![dir::DEPEND_GROUPS],
         vec![dir::MODULES],
         vec![dir::EVENTS],
         vec![dir::FILETYPES],
@@ -177,101 +177,108 @@ fn bundle_setup_dir(root_dir: &str) -> Result<()> {
 
 fn bundle_plugins(
     root_dir: &str,
-    start_plugins: Vec<StartPlugin>,
-    opt_plugins: Vec<OptPlugin>,
-    bundles: Vec<Bundle>,
+    start_plugins: Vec<EagerPlugin>,
+    opt_plugins: Vec<LazyPlugin>,
+    bundles: Vec<LazyGroup>,
 ) -> Result<()> {
     // plugin
     for plugin in &opt_plugins {
-        let mut file = File::create(String::from(root_dir) + "/" + dir::PLUGIN + "/" + &plugin.id)?;
-        write!(file, "return \"{}\"", &plugin.id)?;
+        let mut file =
+            File::create(String::from(root_dir) + "/" + dir::PLUGIN + "/" + &plugin.plugin_id)?;
+        write!(file, "return \"{}\"", &plugin.plugin_id)?;
     }
     for bundle in &bundles {
-        let mut file = File::create(String::from(root_dir) + "/" + dir::PLUGIN + "/" + &bundle.id)?;
+        let mut file =
+            File::create(String::from(root_dir) + "/" + dir::PLUGIN + "/" + &bundle.group_id)?;
         write!(file, "return nil")?;
     }
 
     // plugins
     for plugin in &opt_plugins {
         let mut file =
-            File::create(String::from(root_dir) + "/" + dir::PLUGINS + "/" + &plugin.id)?;
+            File::create(String::from(root_dir) + "/" + dir::PLUGINS + "/" + &plugin.plugin_id)?;
         write!(file, "return {}", to_lua_table(&[].as_slice()))?;
     }
     for bundle in &bundles {
         let mut file =
-            File::create(String::from(root_dir) + "/" + dir::PLUGINS + "/" + &bundle.id)?;
-        write!(file, "return {}", to_lua_table(&bundle.plugins))?;
+            File::create(String::from(root_dir) + "/" + dir::PLUGINS + "/" + &bundle.group_id)?;
+        write!(file, "return {}", to_lua_table(&bundle.plugin_ids))?;
     }
 
     // startup
     let startup_configs = start_plugins
         .iter()
-        .filter(|p| p.startup.code != "")
+        .filter(|p| p.startup_config.code != "")
         .collect::<Vec<_>>();
     let opt_startup_configs = opt_plugins
         .iter()
-        .filter(|p| p.startup.code != "")
+        .filter(|p| p.startup_config.code != "")
         .collect::<Vec<_>>();
     let bundle_startup_configs = bundles
         .iter()
-        .filter(|p| p.startup.code != "")
+        .filter(|p| p.startup_config.code != "")
         .collect::<Vec<_>>();
     let startup_config_ids = &startup_configs
         .iter()
-        .map(|p| p.id)
-        .chain(opt_startup_configs.iter().map(|p| p.id))
-        .chain(bundle_startup_configs.iter().map(|p| p.id))
+        .map(|p| p.plugin_id)
+        .chain(opt_startup_configs.iter().map(|p| p.plugin_id))
+        .chain(bundle_startup_configs.iter().map(|p| p.group_id))
         .collect::<Vec<_>>();
     let mut startup_keys = File::create(String::from(root_dir) + "/" + file::STARTUP_KEYS)?;
     write!(startup_keys, "return {}", to_lua_table(&startup_config_ids))?;
     for cfg in &startup_configs {
-        let mut file = File::create(String::from(root_dir) + "/" + dir::STARTUP + "/" + &cfg.id)?;
-        write!(file, "{}", mk_plugin_config_code(&cfg.startup))?;
+        let mut file =
+            File::create(String::from(root_dir) + "/" + dir::STARTUP + "/" + &cfg.plugin_id)?;
+        write!(file, "{}", mk_plugin_config_code(&cfg.startup_config))?;
     }
     for cfg in &opt_startup_configs {
-        let mut file = File::create(String::from(root_dir) + "/" + dir::STARTUP + "/" + &cfg.id)?;
-        write!(file, "{}", mk_plugin_config_code(&cfg.startup))?;
+        let mut file =
+            File::create(String::from(root_dir) + "/" + dir::STARTUP + "/" + &cfg.plugin_id)?;
+        write!(file, "{}", mk_plugin_config_code(&cfg.startup_config))?;
     }
     for cfg in &bundle_startup_configs {
-        let mut file = File::create(String::from(root_dir) + "/" + dir::STARTUP + "/" + &cfg.id)?;
-        write!(file, "{}", mk_plugin_config_code(&cfg.startup))?;
+        let mut file =
+            File::create(String::from(root_dir) + "/" + dir::STARTUP + "/" + &cfg.group_id)?;
+        write!(file, "{}", mk_plugin_config_code(&cfg.startup_config))?;
     }
 
     // config
     for plugin in &opt_plugins {
-        let mut file = File::create(String::from(root_dir) + "/" + dir::CONFIG + "/" + &plugin.id)?;
+        let mut file =
+            File::create(String::from(root_dir) + "/" + dir::POST_CONFIG + "/" + &plugin.plugin_id)?;
         write!(file, "{}", mk_plugin_config_code(&plugin.config))?;
     }
     for bundle in &bundles {
-        let mut file = File::create(String::from(root_dir) + "/" + dir::CONFIG + "/" + &bundle.id)?;
-        write!(file, "{}", mk_plugin_config_code(&bundle.config))?;
+        let mut file =
+            File::create(String::from(root_dir) + "/" + dir::POST_CONFIG + "/" + &bundle.group_id)?;
+        write!(file, "{}", mk_plugin_config_code(&bundle.post_config))?;
     }
 
     // pre_config
     for plugin in &opt_plugins {
         let mut file =
-            File::create(String::from(root_dir) + "/" + dir::PRE_CONFIG + "/" + &plugin.id)?;
+            File::create(String::from(root_dir) + "/" + dir::PRE_CONFIG + "/" + &plugin.plugin_id)?;
         write!(file, "{}", mk_plugin_config_code(&plugin.pre_config))?;
     }
     for bundle in &bundles {
         let mut file =
-            File::create(String::from(root_dir) + "/" + dir::PRE_CONFIG + "/" + &bundle.id)?;
+            File::create(String::from(root_dir) + "/" + dir::PRE_CONFIG + "/" + &bundle.group_id)?;
         write!(file, "{}", mk_plugin_config_code(&bundle.pre_config))?;
     }
 
     Ok(())
 }
 
-fn bundle_load_options(root_dir: &str, load_opt: LoadingOptions) -> Result<()> {
-    // depends
-    for (id, plugins) in &load_opt.depends {
-        let mut file = File::create(String::from(root_dir) + "/" + dir::DEPENDS + "/" + id)?;
+fn bundle_load_options(root_dir: &str, load_opt: LoadOption) -> Result<()> {
+    // depend_plugins
+    for (id, plugins) in &load_opt.depend_plugins {
+        let mut file = File::create(String::from(root_dir) + "/" + dir::DEPEND_PLUGINS + "/" + id)?;
         write!(file, "return {}", to_lua_table(plugins))?;
     }
 
-    // depend_bundles
-    for (id, bundles) in &load_opt.depend_bundles {
-        let mut file = File::create(String::from(root_dir) + "/" + dir::DEPEND_BUNDLES + "/" + id)?;
+    // depend_groups
+    for (id, bundles) in &load_opt.depend_groups {
+        let mut file = File::create(String::from(root_dir) + "/" + dir::DEPEND_GROUPS + "/" + id)?;
         write!(file, "return {}", to_lua_table(bundles))?;
     }
 
@@ -280,9 +287,9 @@ fn bundle_load_options(root_dir: &str, load_opt: LoadingOptions) -> Result<()> {
     write!(
         modules,
         "return {}",
-        to_lua_table(&load_opt.modules.keys().cloned().collect::<Vec<_>>())
+        to_lua_table(&load_opt.on_modules.keys().cloned().collect::<Vec<_>>())
     )?;
-    for (module, plugins) in &load_opt.modules {
+    for (module, plugins) in &load_opt.on_modules {
         let mut file = File::create(String::from(root_dir) + "/" + dir::MODULES + "/" + module)?;
         write!(file, "return {}", to_lua_table(plugins))?;
     }
@@ -292,9 +299,9 @@ fn bundle_load_options(root_dir: &str, load_opt: LoadingOptions) -> Result<()> {
     write!(
         events,
         "return {}",
-        to_lua_table(&load_opt.events.keys().cloned().collect::<Vec<_>>())
+        to_lua_table(&load_opt.on_events.keys().cloned().collect::<Vec<_>>())
     )?;
-    for (event, plugins) in &load_opt.events {
+    for (event, plugins) in &load_opt.on_events {
         let mut file = File::create(String::from(root_dir) + "/" + dir::EVENTS + "/" + event)?;
         write!(file, "return {}", to_lua_table(plugins))?;
     }
@@ -304,9 +311,9 @@ fn bundle_load_options(root_dir: &str, load_opt: LoadingOptions) -> Result<()> {
     write!(
         filetypes,
         "return {}",
-        to_lua_table(&load_opt.filetypes.keys().cloned().collect::<Vec<_>>())
+        to_lua_table(&load_opt.on_filetypes.keys().cloned().collect::<Vec<_>>())
     )?;
-    for (filetype, plugins) in &load_opt.filetypes {
+    for (filetype, plugins) in &load_opt.on_filetypes {
         let mut file =
             File::create(String::from(root_dir) + "/" + dir::FILETYPES + "/" + filetype)?;
         write!(file, "return {}", to_lua_table(plugins))?;
@@ -317,19 +324,23 @@ fn bundle_load_options(root_dir: &str, load_opt: LoadingOptions) -> Result<()> {
     write!(
         commands,
         "return {}",
-        to_lua_table(&load_opt.commands.keys().cloned().collect::<Vec<_>>())
+        to_lua_table(&load_opt.on_commands.keys().cloned().collect::<Vec<_>>())
     )?;
-    for (command, plugins) in &load_opt.commands {
+    for (command, plugins) in &load_opt.on_commands {
         let mut file = File::create(String::from(root_dir) + "/" + dir::COMMANDS + "/" + command)?;
         write!(file, "return {}", to_lua_table(plugins))?;
     }
 
-    // lazys
-    let mut lazy_file = File::create(String::from(root_dir) + "/" + file::LAZYS)?;
-    write!(lazy_file, "return {}", to_lua_table(&load_opt.lazys))?;
+    // timer clients
+    let mut timer_clients = File::create(String::from(root_dir) + "/" + file::TIMER_CLIENTS)?;
+    write!(
+        timer_clients,
+        "return {}",
+        to_lua_table(&load_opt.timer_clients)
+    )?;
 
-    // denops
-    let mut denops_file = File::create(String::from(root_dir) + "/" + file::DENOPS)?;
+    // denops clients
+    let mut denops_file = File::create(String::from(root_dir) + "/" + file::DENOPS_CLIENTS)?;
     write!(
         denops_file,
         "return {}",
@@ -353,7 +364,7 @@ fn bundle_rtp(root_dir: &str, id_map: &HashMap<&str, &str>) -> Result<()> {
     Ok(())
 }
 
-fn bundle_after_opt(root_dir: &str, after_opt: &AfterOptions) -> Result<()> {
+fn bundle_after_opt(root_dir: &str, after_opt: &AfterOption) -> Result<()> {
     // ftplugin
     for (ft, config) in &after_opt.ftplugin {
         let mut file = File::create(
@@ -370,14 +381,14 @@ pub fn bundle(root_dir: &str, payload_path: &str, specs: Specs) -> Result<()> {
     bundle_setup_dir(root_dir)?;
     bundle_plugins(
         root_dir,
-        bundled_specks.start_plugins,
-        bundled_specks.opt_plugins,
-        bundled_specks.bundles,
+        bundled_specks.eager_plugins,
+        bundled_specks.lazy_plugins,
+        bundled_specks.lazy_groups,
     )?;
-    bundle_load_options(root_dir, bundled_specks.load_opt)?;
+    bundle_load_options(root_dir, bundled_specks.load_option)?;
     bundle_stats(root_dir, payload_path)?;
     bundle_rtp(root_dir, &bundled_specks.id_map)?;
-    bundle_after_opt(root_dir, &bundled_specks.after_opt)?;
+    bundle_after_opt(root_dir, &bundled_specks.after_option)?;
     Ok(())
 }
 
@@ -387,28 +398,28 @@ mod tests {
 
     #[test]
     fn bundle_start() {
-        let p1_filled = StartPlugin {
-            id: "p1",
-            startup: PluginConfig {
-                lang: Language::Vim,
+        let p1_filled = EagerPlugin {
+            plugin_id: "p1",
+            startup_config: PluginConfig {
+                language: Language::Vim,
                 args: &serde_json::Value::String(String::from("p1-args")),
                 code: "p1-args",
             },
         };
-        let p1_simple = StartPlugin {
-            id: "p1",
+        let p1_simple = EagerPlugin {
+            plugin_id: "p1",
             ..Default::default()
         };
-        let p2_simple = StartPlugin {
-            id: "p2",
+        let p2_simple = EagerPlugin {
+            plugin_id: "p2",
             ..Default::default()
         };
         let arg_empty = vec![];
         let arg_same_filled_simple = vec![p1_filled.clone(), p1_simple.clone()];
         let arg_same_simple_filled = vec![p1_simple.clone(), p1_filled.clone()];
         let arg_same = vec![p1_filled.clone(), p1_filled.clone()];
-        let arg_diff: Vec<StartPlugin<'_>> = vec![p1_simple.clone(), p2_simple.clone()];
-        let exp_empty: Vec<StartPlugin<'_>> = vec![];
+        let arg_diff: Vec<EagerPlugin<'_>> = vec![p1_simple.clone(), p2_simple.clone()];
+        let exp_empty: Vec<EagerPlugin<'_>> = vec![];
         let exp_same_filled = vec![p1_filled.clone()];
         let exp_diff = vec![p1_simple.clone(), p2_simple.clone()];
 
@@ -430,30 +441,30 @@ mod tests {
 
     #[test]
     fn bundle_opt() {
-        let p1_filled = OptPlugin {
-            id: "p1",
-            startup: PluginConfig {
-                lang: Language::Vim,
+        let p1_filled = LazyPlugin {
+            plugin_id: "p1",
+            startup_config: PluginConfig {
+                language: Language::Vim,
                 args: &serde_json::Value::String(String::from("p1-args")),
                 code: "p1-args",
             },
             config: PluginConfig {
-                lang: Language::Vim,
+                language: Language::Vim,
                 args: &serde_json::Value::String(String::from("p1-args")),
                 code: "p1-args",
             },
             pre_config: PluginConfig {
-                lang: Language::Vim,
+                language: Language::Vim,
                 args: &serde_json::Value::String(String::from("p1-args")),
                 code: "p1-args",
             },
         };
-        let p1_simple = OptPlugin {
-            id: "p1",
+        let p1_simple = LazyPlugin {
+            plugin_id: "p1",
             ..Default::default()
         };
-        let p2_simple = OptPlugin {
-            id: "p2",
+        let p2_simple = LazyPlugin {
+            plugin_id: "p2",
             ..Default::default()
         };
 
@@ -461,8 +472,8 @@ mod tests {
         let arg_same_filled_simple = vec![p1_filled.clone(), p1_simple.clone()];
         let arg_same_simple_filled = vec![p1_simple.clone(), p1_filled.clone()];
         let arg_same = vec![p1_filled.clone(), p1_filled.clone()];
-        let arg_diff: Vec<OptPlugin<'_>> = vec![p1_simple.clone(), p2_simple.clone()];
-        let exp_empty: Vec<OptPlugin<'_>> = vec![];
+        let arg_diff: Vec<LazyPlugin<'_>> = vec![p1_simple.clone(), p2_simple.clone()];
+        let exp_empty: Vec<LazyPlugin<'_>> = vec![];
         let exp_same_filled = vec![p1_filled.clone()];
         let exp_diff = vec![p1_simple.clone(), p2_simple.clone()];
 
@@ -484,39 +495,39 @@ mod tests {
 
     #[test]
     fn bundle_bundle() {
-        let b1_filled = Bundle {
-            id: "b1",
-            plugins: vec!["p1"],
-            startup: PluginConfig {
-                lang: Language::Vim,
+        let b1_filled = LazyGroup {
+            group_id: "b1",
+            plugin_ids: vec!["p1"],
+            startup_config: PluginConfig {
+                language: Language::Vim,
                 args: &serde_json::Value::String(String::from("b1-args")),
                 code: "b1-args",
             },
-            config: PluginConfig {
-                lang: Language::Vim,
+            post_config: PluginConfig {
+                language: Language::Vim,
                 args: &serde_json::Value::String(String::from("b1-args")),
                 code: "b1-args",
             },
             pre_config: PluginConfig {
-                lang: Language::Vim,
+                language: Language::Vim,
                 args: &serde_json::Value::String(String::from("b1-args")),
                 code: "b1-args",
             },
         };
-        let b1_simple = Bundle {
-            id: "b1",
+        let b1_simple = LazyGroup {
+            group_id: "b1",
             ..Default::default()
         };
-        let b2_simple = Bundle {
-            id: "b2",
+        let b2_simple = LazyGroup {
+            group_id: "b2",
             ..Default::default()
         };
         let arg_empty = vec![];
         let arg_same_filled_simple = vec![b1_filled.clone(), b1_simple.clone()];
         let arg_same_simple_filled = vec![b1_simple.clone(), b1_filled.clone()];
         let arg_same = vec![b1_filled.clone(), b1_filled.clone()];
-        let arg_diff: Vec<Bundle<'_>> = vec![b1_simple.clone(), b2_simple.clone()];
-        let exp_empty: Vec<Bundle<'_>> = vec![];
+        let arg_diff: Vec<LazyGroup<'_>> = vec![b1_simple.clone(), b2_simple.clone()];
+        let exp_empty: Vec<LazyGroup<'_>> = vec![];
         let exp_same_filled = vec![b1_filled.clone()];
         let exp_diff = vec![b1_simple.clone(), b2_simple.clone()];
 

@@ -4,7 +4,7 @@ use std::collections::HashMap;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PluginConfig<'a> {
-    pub lang: Language,
+    pub language: Language,
     pub code: &'a str,
     pub args: &'a Value,
 }
@@ -12,7 +12,7 @@ pub struct PluginConfig<'a> {
 impl Default for PluginConfig<'_> {
     fn default() -> Self {
         PluginConfig {
-            lang: Language::default(),
+            language: Language::default(),
             code: "",
             args: &Value::Null,
         }
@@ -20,42 +20,42 @@ impl Default for PluginConfig<'_> {
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
-pub struct StartPlugin<'a> {
-    pub id: &'a str,
-    pub startup: PluginConfig<'a>,
+pub struct EagerPlugin<'a> {
+    pub plugin_id: &'a str,
+    pub startup_config: PluginConfig<'a>,
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
-pub struct OptPlugin<'a> {
-    pub id: &'a str,
-    pub startup: PluginConfig<'a>,
+pub struct LazyPlugin<'a> {
+    pub plugin_id: &'a str,
+    pub startup_config: PluginConfig<'a>,
     pub pre_config: PluginConfig<'a>,
     pub config: PluginConfig<'a>,
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
-pub struct Bundle<'a> {
-    pub id: &'a str,
-    pub plugins: Vec<&'a str>,
-    pub startup: PluginConfig<'a>,
+pub struct LazyGroup<'a> {
+    pub group_id: &'a str,
+    pub plugin_ids: Vec<&'a str>,
+    pub startup_config: PluginConfig<'a>,
     pub pre_config: PluginConfig<'a>,
-    pub config: PluginConfig<'a>,
+    pub post_config: PluginConfig<'a>,
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
-pub struct LoadingOptions<'a> {
-    pub depends: HashMap<&'a str, Vec<&'a str>>,
-    pub depend_bundles: HashMap<&'a str, Vec<&'a str>>,
-    pub modules: HashMap<&'a str, Vec<&'a str>>,
-    pub events: HashMap<&'a str, Vec<&'a str>>,
-    pub filetypes: HashMap<&'a str, Vec<&'a str>>,
-    pub commands: HashMap<&'a str, Vec<&'a str>>,
-    pub lazys: Vec<&'a str>,
+pub struct LoadOption<'a> {
+    pub depend_plugins: HashMap<&'a str, Vec<&'a str>>,
+    pub depend_groups: HashMap<&'a str, Vec<&'a str>>,
+    pub on_modules: HashMap<&'a str, Vec<&'a str>>,
+    pub on_events: HashMap<&'a str, Vec<&'a str>>,
+    pub on_filetypes: HashMap<&'a str, Vec<&'a str>>,
+    pub on_commands: HashMap<&'a str, Vec<&'a str>>,
+    pub timer_clients: Vec<&'a str>,
     pub denops_clients: Vec<&'a str>,
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
-pub struct AfterOptions<'a> {
+pub struct AfterOption<'a> {
     pub ftplugin: HashMap<&'a str, &'a str>,
 }
 
@@ -63,9 +63,9 @@ pub struct AfterOptions<'a> {
 pub struct Specs<'a> {
     /// key is package (e.g. `/nix/store/...`), value is id.
     pub id_map: HashMap<&'a str, &'a str>,
-    pub start_plugins: Vec<StartPlugin<'a>>,
-    pub opt_plugins: Vec<OptPlugin<'a>>,
-    pub bundles: Vec<Bundle<'a>>,
-    pub load_opt: LoadingOptions<'a>,
-    pub after_opt: AfterOptions<'a>,
+    pub eager_plugins: Vec<EagerPlugin<'a>>,
+    pub lazy_plugins: Vec<LazyPlugin<'a>>,
+    pub lazy_groups: Vec<LazyGroup<'a>>,
+    pub load_option: LoadOption<'a>,
+    pub after_option: AfterOption<'a>,
 }

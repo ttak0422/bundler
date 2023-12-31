@@ -1,11 +1,11 @@
 ---@class Options
 ---@field root string
----@field lazy_time number
+---@field timer number
 ---@field log_level '"debug"' | '"info"'| '"warn"' | '"error"'
 
 ---@class Bundler
 ---@field root string
----@field lazy_time number
+---@field timer number
 ---@field new fun(opts: Options): Bundler
 ---@field setup_loader fun(self: Bundler)
 ---@field startup fun(self: Bundler, id: string)
