@@ -4,11 +4,12 @@ use std::collections::HashMap;
 use std::fs::{create_dir, File};
 use std::io::Write;
 
-use crate::util::collection::{to_unique_map, to_unique_vector};
-use crate::constants::{dir, file, Language};
+use crate::constants::{dir, file};
+use crate::content::Language;
 use crate::content::{
     AfterOption, EagerPlugin, LazyGroup, LazyPlugin, LoadOption, PluginConfig, Specs,
 };
+use crate::util::collection::{to_unique_map, to_unique_vector};
 use crate::util::lua::{to_lua_flag_table, to_lua_table};
 
 trait Bundleable
@@ -244,8 +245,9 @@ fn bundle_plugins(
 
     // config
     for plugin in &opt_plugins {
-        let mut file =
-            File::create(String::from(root_dir) + "/" + dir::POST_CONFIG + "/" + &plugin.plugin_id)?;
+        let mut file = File::create(
+            String::from(root_dir) + "/" + dir::POST_CONFIG + "/" + &plugin.plugin_id,
+        )?;
         write!(file, "{}", mk_plugin_config_code(&plugin.config))?;
     }
     for bundle in &bundles {

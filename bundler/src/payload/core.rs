@@ -3,6 +3,7 @@ use std::collections::HashMap;
 use serde::Deserialize;
 use serde_json::Value;
 
+use crate::payload::common;
 use crate::payload::eager;
 use crate::payload::group;
 use crate::payload::lazy;
@@ -25,17 +26,9 @@ impl Default for Config {
 #[cfg_attr(test, derive(Builder))]
 #[serde(rename_all = "camelCase")]
 pub struct DetailConfig {
-    pub language: Language,
+    pub language: common::Language,
     pub code: String,
     pub args: Value,
-}
-
-#[derive(Debug, Default, Deserialize, Clone, PartialEq, Eq)]
-#[serde(rename_all = "camelCase")]
-pub enum Language {
-    Vim,
-    #[default]
-    Lua,
 }
 
 #[derive(Debug, Default, Deserialize, Clone, PartialEq, Eq)]
