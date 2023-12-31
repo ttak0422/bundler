@@ -1,4 +1,6 @@
-use std::fmt::{self};
+use std::{convert::From, fmt};
+
+use crate::payload;
 
 #[derive(Debug, Clone, Default, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Language {
@@ -12,6 +14,15 @@ impl fmt::Display for Language {
         match &self {
             Language::Vim => write!(f, "vim"),
             Language::Lua => write!(f, "lua"),
+        }
+    }
+}
+
+impl From<payload::Language> for Language {
+    fn from(language: payload::Language) -> Self {
+        match language {
+            payload::Language::Vim => Self::Vim,
+            payload::Language::Lua => Self::Lua,
         }
     }
 }

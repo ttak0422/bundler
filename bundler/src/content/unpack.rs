@@ -3,13 +3,7 @@ use crate::content::config;
 use crate::payload;
 use serde_json::Value;
 use std::collections::HashMap;
-
-fn mapping_language(lang: &payload::Language) -> Language {
-    match lang {
-        payload::Language::Vim => Language::Vim,
-        payload::Language::Lua => Language::Lua,
-    }
-}
+use std::convert::From;
 
 /// key is nix package (e.g. `/nix/store/...`), value is plugin_id which corresponds to the name of vim plugin.
 fn make_id_map<'a>(meta: &'a payload::Meta) -> HashMap<&'a str, &'a str> {
@@ -46,7 +40,7 @@ impl<'a> Unpackable<'a, config::EagerPlugin<'a>> for payload::VimStartPlugin {
                         args: &Value::Null,
                     },
                     payload::Config::Detail(dtl) => config::PluginConfig {
-                        language: mapping_language(&dtl.language),
+                        language: Language::from(dtl.language.clone()),
                         code: &dtl.code,
                         args: &dtl.args,
                     },
@@ -80,7 +74,7 @@ impl<'a> Unpackable<'a, Vec<config::LazyPlugin<'a>>> for payload::VimOptPlugin {
                         args: &Value::Null,
                     },
                     payload::Config::Detail(dtl) => config::PluginConfig {
-                        language: mapping_language(&dtl.language),
+                        language: Language::from(dtl.language.clone()),
                         code: &dtl.code,
                         args: &dtl.args,
                     },
@@ -92,7 +86,7 @@ impl<'a> Unpackable<'a, Vec<config::LazyPlugin<'a>>> for payload::VimOptPlugin {
                         args: &Value::Null,
                     },
                     payload::Config::Detail(dtl) => config::PluginConfig {
-                        language: mapping_language(&dtl.language),
+                        language: Language::from(dtl.language.clone()),
                         code: &dtl.code,
                         args: &dtl.args,
                     },
@@ -104,7 +98,7 @@ impl<'a> Unpackable<'a, Vec<config::LazyPlugin<'a>>> for payload::VimOptPlugin {
                         args: &Value::Null,
                     },
                     payload::Config::Detail(dtl) => config::PluginConfig {
-                        language: mapping_language(&dtl.language),
+                        language: Language::from(dtl.language.clone()),
                         code: &dtl.code,
                         args: &dtl.args,
                     },
@@ -143,7 +137,7 @@ impl<'a> Unpackable<'a, config::LazyGroup<'a>> for payload::LazyGroup {
                 args: &Value::Null,
             },
             payload::Config::Detail(dtl) => config::PluginConfig {
-                language: mapping_language(&dtl.language),
+                language: Language::from(dtl.language.clone()),
                 code: &dtl.code,
                 args: &dtl.args,
             },
@@ -155,7 +149,7 @@ impl<'a> Unpackable<'a, config::LazyGroup<'a>> for payload::LazyGroup {
                 args: &Value::Null,
             },
             payload::Config::Detail(dtl) => config::PluginConfig {
-                language: mapping_language(&dtl.language),
+                language: Language::from(dtl.language.clone()),
                 code: &dtl.code,
                 args: &dtl.args,
             },
@@ -167,7 +161,7 @@ impl<'a> Unpackable<'a, config::LazyGroup<'a>> for payload::LazyGroup {
                 args: &Value::Null,
             },
             payload::Config::Detail(dtl) => config::PluginConfig {
-                language: mapping_language(&dtl.language),
+                language: Language::from(dtl.language.clone()),
                 code: &dtl.code,
                 args: &dtl.args,
             },
