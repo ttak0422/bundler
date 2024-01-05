@@ -23,5 +23,4 @@ pub mod file {
     pub static COMMAND_KEYS: &str = "command_keys";
     pub static TIMER_CLIENTS: &str = "timer_clients";
     pub static DENOPS_CLIENTS: &str = "denops_clients";
-    pub static PAYLOAD: &str = "payload";
 }

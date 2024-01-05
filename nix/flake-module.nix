@@ -7,6 +7,12 @@ in {
       let
         inherit (lib) types mkEnableOption mkOption;
         neovim = {
+          target = mkOption {
+            type = types.enum [ "neovim" ];
+            default = "neovim";
+            description = "internal usage";
+            visible = false;
+          };
           package = mkOption {
             type = types.package;
             description = "Neovim package";
@@ -57,7 +63,7 @@ in {
             options = {
               language = mkOption {
                 type = types.enum [ "vim" "lua" ];
-                default = "lua";
+                default = "vim";
               };
               code = mkOption {
                 type = types.lines;
@@ -194,7 +200,6 @@ in {
                 default = [ ];
               };
               useTimer = mkEnableOption "useTimer";
-              useDenops = mkEnableOption "useDenops";
             };
           };
         in {
@@ -305,6 +310,7 @@ in {
               config = cfg;
               meta = {
                 inherit extraPackages;
+                inherit (cfg) target;
                 idMap = map (p: {
                   package = p;
                   pluginId = p.pname;

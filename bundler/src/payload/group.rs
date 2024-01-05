@@ -1,6 +1,5 @@
-use serde::Deserialize;
-
 use crate::payload::{config::Config, lazy};
+use serde::Deserialize;
 
 #[derive(Debug, Default, Deserialize, Clone, PartialEq, Eq)]
 #[cfg_attr(test, derive(Builder))]

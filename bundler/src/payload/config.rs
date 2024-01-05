@@ -1,12 +1,10 @@
-use std::collections::HashMap;
-
-use serde::Deserialize;
-use serde_json::Value;
-
-use crate::payload::common;
+use crate::payload::common::{Language, Target};
 use crate::payload::eager;
 use crate::payload::group;
 use crate::payload::lazy;
+use serde::Deserialize;
+use serde_json::Value;
+use std::collections::HashMap;
 
 #[derive(Debug, Deserialize, Clone, PartialEq, Eq)]
 #[serde(untagged)]
@@ -18,7 +16,7 @@ pub enum Config {
 }
 impl Default for Config {
     fn default() -> Self {
-        Config::Simple(String::from(""))
+        Config::Simple(String::default())
     }
 }
 
@@ -26,7 +24,7 @@ impl Default for Config {
 #[cfg_attr(test, derive(Builder))]
 #[serde(rename_all = "camelCase")]
 pub struct DetailConfig {
-    pub language: common::Language,
+    pub language: Language,
     pub code: String,
     pub args: Value,
 }
@@ -43,6 +41,7 @@ pub struct IdMapElement {
 #[cfg_attr(test, derive(Builder))]
 #[serde(rename_all = "camelCase")]
 pub struct Meta {
+    pub target: Target,
     pub extra_packages: Vec<String>,
     pub id_map: Vec<IdMapElement>,
 }
