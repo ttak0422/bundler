@@ -1,9 +1,0 @@
-pub use crate::bundle::config::{AfterOption, Bundle, Code, LoadOption, Spec};
-use crate::content::flat_config;
-
-mod config;
-
-pub fn bundle<'a>(config: &'a flat_config::FlatConfig) -> Spec<'a> {
-
-    todo!()
-}
