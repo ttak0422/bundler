@@ -42,7 +42,7 @@ fn mk_component<'a>(
         content::Package::EagerPlugin(_) => vec![],
         content::Package::LazyPlugin(p) => {
             let mut ps = p
-                .depend_plugins
+                .depend_plugin_packages
                 .iter()
                 .map(|package| id_table.get(package))
                 .collect::<Vec<&str>>();
@@ -52,7 +52,7 @@ fn mk_component<'a>(
         }
         content::Package::LazyGroup(g) => {
             let mut ps = g
-                .depend_plugins
+                .depend_plugin_packages
                 .iter()
                 .map(|package| id_table.get(package))
                 .collect::<Vec<&str>>();
