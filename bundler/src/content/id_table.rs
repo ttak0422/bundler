@@ -12,6 +12,7 @@ impl IdTable {
     /// precondition: the key must be the value registered at initialization.
     pub fn get<T: TableKey + ?Sized>(&self, key: &T) -> &str {
         &self.value.get(key.key()).unwrap()
+        &self.value.get(key.key()).expect("unregistered key was used")
     }
 }
 
