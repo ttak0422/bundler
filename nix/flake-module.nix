@@ -120,7 +120,7 @@ in {
               };
               dependGroups = mkOption {
                 type = with types; listOf str;
-                description = "Bundles to load before this plugin";
+                description = "Groups to load before this plugin";
                 default = [ ];
               };
               onModules = mkOption {
@@ -274,7 +274,7 @@ in {
               flatten (map extractVimPlugins x.plugins)
             else
               [ x ];
-            depends = flatten (map extractVimPlugins (x.depends or [ ]));
+            depends = flatten (map extractVimPlugins (x.dependPlugins or [ ]));
           in arg ++ depends;
 
         # (package | eagerPluginConfig | lazyPluginConfig | lazyGroupConfig) -> package[]
@@ -284,7 +284,8 @@ in {
               map extractExtraPackages x.plugins
             else
               [ ]);
-            depends = flatten (map extractExtraPackages (x.depends or [ ]));
+            depends =
+              flatten (map extractExtraPackages (x.dependPlugins or [ ]));
           in arg ++ depends;
 
         mkNvimPackage = name: cfg:
