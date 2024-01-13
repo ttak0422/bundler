@@ -36,6 +36,12 @@ impl TableKey for str {
     }
 }
 
+impl TableKey for String {
+    fn key(&self) -> &str {
+        self.as_str()
+    }
+}
+
 impl TableKey for content::EagerPlugin {
     fn key(&self) -> &str {
         &self.nix_package

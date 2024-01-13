@@ -44,7 +44,7 @@ fn mk_component<'a>(
             let mut ps = p
                 .depend_plugins
                 .iter()
-                .map(|p| p.as_str())
+                .map(|package| id_table.get(package))
                 .collect::<Vec<&str>>();
             ps.sort();
             ps.dedup();
@@ -54,7 +54,7 @@ fn mk_component<'a>(
             let mut ps = g
                 .depend_plugins
                 .iter()
-                .map(|p| p.as_str())
+                .map(|package| id_table.get(package))
                 .collect::<Vec<&str>>();
             ps.sort();
             ps.dedup();
@@ -89,7 +89,11 @@ fn mk_component<'a>(
         content::Package::EagerPlugin(_) => vec![],
         content::Package::LazyPlugin(_) => vec![],
         content::Package::LazyGroup(g) => {
-            let mut ps = g.plugins.iter().map(|p| p.as_str()).collect::<Vec<&str>>();
+            let mut ps = g
+                .plugins
+                .iter()
+                .map(|package| id_table.get(package))
+                .collect::<Vec<&str>>();
             ps.sort();
             ps.dedup();
             ps
@@ -127,7 +131,7 @@ pub fn bundle<'a>(config: &'a content::Content) -> Bundle<'a> {
                 let id = config.id_table.get(p);
                 load_option.plugin_paths.insert(id, p.nix_package.as_str());
                 load_option.startup_plugins.push(id);
-            },
+            }
             content::Package::LazyPlugin(p) => {
                 let id = config.id_table.get(p);
 
