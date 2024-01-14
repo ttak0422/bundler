@@ -1,7 +1,9 @@
 mod config;
 mod export;
+mod merge;
 pub use crate::bundle::config::{AfterOption, Bundle, Component, LoadOption, PluginId, PluginPath};
 pub use crate::bundle::export::{ExportOption, Exporter};
+use crate::bundle::merge::merge_vector;
 use crate::content;
 use anyhow::Result;
 use std::collections::HashMap;
@@ -227,6 +229,8 @@ pub fn bundle<'a>(config: &'a content::Content) -> Bundle<'a> {
     load_option.timer_clients.dedup();
     load_option.denops_clients.sort();
     load_option.denops_clients.dedup();
+
+    let components = merge_vector(components).unwrap();
 
     Bundle {
         components,
