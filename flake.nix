@@ -34,7 +34,8 @@
       let
         inherit (flake-parts-lib) importApply;
         flakeModules = {
-          nvim = importApply ./nix/flake-module.nix { inherit withSystem; };
+          neovim =
+            importApply ./nix/neovim-flake-module.nix { inherit withSystem; };
         };
 
       in {
