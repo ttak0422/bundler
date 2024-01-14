@@ -13,6 +13,7 @@ pub mod dir {
     pub static RTP: &str = "rtp";
     pub static AFTER: &str = "after";
     pub static FTPLUGIN: &str = "ftplugin";
+    pub static INFO: &str = "info";
 }
 
 pub mod file {
@@ -23,4 +24,5 @@ pub mod file {
     pub static COMMAND_KEYS: &str = "command_keys";
     pub static TIMER_CLIENTS: &str = "timer_clients";
     pub static DENOPS_CLIENTS: &str = "denops_clients";
+    pub static BUNDLER_BIN: &str = "bundler_bin";
 }

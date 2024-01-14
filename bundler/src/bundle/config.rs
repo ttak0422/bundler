@@ -28,6 +28,10 @@ pub struct AfterOption<'a> {
     pub ftplugin: HashMap<&'a str, &'a str>,
 }
 
+pub struct Info<'a> {
+    pub bundler_bin: &'a str,
+}
+
 pub type PluginId<'a> = &'a str;
 
 pub type PluginPath<'a> = &'a str;
@@ -36,4 +40,5 @@ pub struct Bundle<'a> {
     pub components: Vec<Component<'a>>,
     pub load_option: LoadOption<'a>,
     pub after_option: AfterOption<'a>,
+    pub info: Info<'a>,
 }

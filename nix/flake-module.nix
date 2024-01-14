@@ -312,6 +312,8 @@ in {
               meta = {
                 inherit extraPackages;
                 inherit (cfg) target;
+                # hack to escape GC.
+                bundlerBin = bundler;
                 idMap = map (p: {
                   package = p;
                   pluginId = p.pname;

@@ -43,6 +43,7 @@ pub struct IdMapElement {
 pub struct Meta {
     pub target: Target,
     pub extra_packages: Vec<String>,
+    pub bundler_bin: String,
     pub id_map: Vec<IdMapElement>,
 }
 

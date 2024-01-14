@@ -1,7 +1,9 @@
 mod config;
 mod export;
 mod merge;
-pub use crate::bundle::config::{AfterOption, Bundle, Component, LoadOption, PluginId, PluginPath};
+pub use crate::bundle::config::{
+    AfterOption, Bundle, Component, Info, LoadOption, PluginId, PluginPath,
+};
 pub use crate::bundle::export::{ExportOption, Exporter};
 use crate::bundle::merge::merge_vector;
 use crate::content;
@@ -236,6 +238,9 @@ pub fn bundle<'a>(config: &'a content::Content) -> Bundle<'a> {
         components,
         load_option,
         after_option: mk_after_option(&config.after_option),
+        info: Info {
+            bundler_bin: config.info.bundler_bin.as_str(),
+        },
     }
 }
 
@@ -250,6 +255,9 @@ pub fn export<'a>(bundle: Bundle<'a>, export_option: ExportOption<'a>) -> Result
 
     // after options
     bundle.after_option.export_file(&export_option)?;
+
+    // info
+    bundle.info.export_file(&export_option)?;
 
     Ok(())
 }

@@ -1,8 +1,8 @@
-use crate::bundle::{AfterOption, Component, LoadOption};
-use crate::constant::dir::{AFTER, FTPLUGIN, MODULES};
+use crate::bundle::{AfterOption, Component, Info, LoadOption};
+use crate::constant::dir::{AFTER, FTPLUGIN, INFO, MODULES};
 use crate::constant::file::{
-    COMMAND_KEYS, DENOPS_CLIENTS, EVENT_KEYS, FILETYPE_KEYS, MODULE_KEYS, STARTUP_KEYS,
-    TIMER_CLIENTS,
+    BUNDLER_BIN, COMMAND_KEYS, DENOPS_CLIENTS, EVENT_KEYS, FILETYPE_KEYS, MODULE_KEYS,
+    STARTUP_KEYS, TIMER_CLIENTS,
 };
 use crate::constant::{self, dir};
 use crate::util::file::create_file_with_dirs;
@@ -191,6 +191,17 @@ impl<'a> Exporter for AfterOption<'a> {
             )?;
             write!(file, "{}", code)?;
         }
+
+        Ok(())
+    }
+}
+
+impl<'a> Exporter for Info<'a> {
+    fn export_file(self, opt: &ExportOption) -> Result<()> {
+        // bundler bin
+        let mut bundler_bin_file =
+            create_file_with_dirs(String::from(opt.root_dir) + "/" + INFO + "/" + BUNDLER_BIN)?;
+        write!(bundler_bin_file, "return \"{}\"", self.bundler_bin)?;
 
         Ok(())
     }

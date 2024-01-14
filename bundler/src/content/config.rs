@@ -54,10 +54,15 @@ pub struct AfterOption {
     pub ftplugin: HashMap<String, String>,
 }
 
+pub struct Info {
+    pub bundler_bin: String,
+}
+
 pub struct Content {
     pub packages: Vec<Package>,
     pub id_table: IdTable,
     pub after_option: AfterOption,
+    pub info: Info,
 }
 
 fn mk_args_code(args: serde_json::Value, language: &Language) -> String {

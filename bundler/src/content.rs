@@ -7,7 +7,7 @@ mod id_table;
 
 use crate::content::common::Target;
 pub use crate::content::config::{
-    AfterOption, Content, EagerPlugin, LazyGroup, LazyPlugin, Package,
+    AfterOption, Content, EagerPlugin, LazyGroup, LazyPlugin, Package, Info
 };
 use crate::content::from_target::FromTarget;
 // TODO: capsule
@@ -39,9 +39,14 @@ pub fn unpack(payload: payload::Payload) -> Content {
     let id_table = IdTable::from(payload.meta.id_map);
     let after_option = AfterOption::from(payload.config.after);
 
+    let info = Info {
+        bundler_bin: payload.meta.bundler_bin,
+    };
+
     Content {
         packages,
         id_table,
         after_option,
+        info,
     }
 }
