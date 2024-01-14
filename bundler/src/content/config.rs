@@ -60,11 +60,51 @@ pub struct Content {
     pub after_option: AfterOption,
 }
 
-fn make_code(code: String, language: &Language, target: &Target) -> String {
+fn mk_args_code(args: serde_json::Value, language: &Language) -> String {
+    if match args {
+        serde_json::Value::Object(_) => false,
+        // ignore Null, Bool, Number, String, Array
+        _ => true,
+    } {
+        String::default()
+    } else {
+        let args = serde_json::to_string(&args).unwrap();
+        if args == "{}" {
+            String::default()
+        } else {
+            match language {
+                Language::Vim => {
+                    format!("let s:args = json_decode('{}')", args)
+                }
+                Language::Lua => {
+                    format!("local args = vim.json.decode([[{}]])", args)
+                }
+            }
+        }
+    }
+}
+
+fn mk_simple_code(code: String, target: &Target) -> String {
+    let language = Language::default();
+    if code == "" {
+        String::default()
+    } else {
+        match (target, language) {
+            (Target::Vim, Language::Vim) => code,
+            (Target::Neovim, Language::Vim) => format!("vim.cmd([[{}]])", code),
+            (Target::Neovim, Language::Lua) => code,
+            _ => panic!("invalid target and language combination"),
+        }
+    }
+}
+
+fn mk_detail_code(cfg: payload::DetailConfig, target: &Target) -> String {
+    let language = Language::from(cfg.language);
+    let args = mk_args_code(cfg.args, &language);
     match (target, language) {
-        (Target::Vim, Language::Vim) => code,
-        (Target::Neovim, Language::Vim) => format!("vim.cmd([[{}]])", code),
-        (Target::Neovim, Language::Lua) => code,
+        (Target::Vim, Language::Vim) => format!("{}\n{}", args, cfg.code),
+        (Target::Neovim, Language::Vim) => format!("vim.cmd([[\n{}\n{}]])", args, cfg.code),
+        (Target::Neovim, Language::Lua) => format!("{}\n{}", args, cfg.code),
         _ => panic!("invalid target and language combination"),
     }
 }
@@ -78,11 +118,8 @@ impl FromTarget<payload::EagerVimPluginPackage> for EagerPlugin {
             },
             payload::EagerVimPluginPackage::ConfiguredPackage(cfg) => {
                 let startup_config = match cfg.startup_config {
-                    payload::Config::Simple(code) => make_code(code, &Language::default(), target),
-                    payload::Config::Detail(cfg) => {
-                        let language = Language::from(cfg.language);
-                        make_code(cfg.code, &language, target)
-                    }
+                    payload::Config::Simple(code) => mk_simple_code(code, target),
+                    payload::Config::Detail(cfg) => mk_detail_code(cfg, target),
                 };
                 EagerPlugin {
                     nix_package: cfg.plugin,
@@ -107,25 +144,16 @@ impl FromTarget<payload::LazyVimPluginPackage> for Vec<Package> {
 
                 // package
                 let startup_config = match cfg.startup_config {
-                    payload::Config::Simple(code) => make_code(code, &Language::default(), target),
-                    payload::Config::Detail(cfg) => {
-                        let language = Language::from(cfg.language);
-                        make_code(cfg.code, &language, target)
-                    }
+                    payload::Config::Simple(code) => mk_simple_code(code, target),
+                    payload::Config::Detail(cfg) => mk_detail_code(cfg, target),
                 };
                 let pre_config = match cfg.pre_config {
-                    payload::Config::Simple(code) => make_code(code, &Language::default(), target),
-                    payload::Config::Detail(cfg) => {
-                        let language = Language::from(cfg.language);
-                        make_code(cfg.code, &language, target)
-                    }
+                    payload::Config::Simple(code) => mk_simple_code(code, target),
+                    payload::Config::Detail(cfg) => mk_detail_code(cfg, target),
                 };
                 let post_config = match cfg.post_config {
-                    payload::Config::Simple(code) => make_code(code, &Language::default(), target),
-                    payload::Config::Detail(cfg) => {
-                        let language = Language::from(cfg.language);
-                        make_code(cfg.code, &language, target)
-                    }
+                    payload::Config::Simple(code) => mk_simple_code(code, target),
+                    payload::Config::Detail(cfg) => mk_detail_code(cfg, target),
                 };
                 let depend_plugins = cfg
                     .depend_plugins
@@ -180,25 +208,16 @@ impl FromTarget<payload::LazyGroup> for Vec<Package> {
             })
             .collect();
         let startup_config = match value.startup_config {
-            payload::Config::Simple(code) => make_code(code, &Language::default(), target),
-            payload::Config::Detail(cfg) => {
-                let language = Language::from(cfg.language);
-                make_code(cfg.code, &language, target)
-            }
+            payload::Config::Simple(code) => mk_simple_code(code, target),
+            payload::Config::Detail(cfg) => mk_detail_code(cfg, target),
         };
         let pre_config = match value.pre_config {
-            payload::Config::Simple(code) => make_code(code, &Language::default(), target),
-            payload::Config::Detail(cfg) => {
-                let language = Language::from(cfg.language);
-                make_code(cfg.code, &language, target)
-            }
+            payload::Config::Simple(code) => mk_simple_code(code, target),
+            payload::Config::Detail(cfg) => mk_detail_code(cfg, target),
         };
         let post_config = match value.post_config {
-            payload::Config::Simple(code) => make_code(code, &Language::default(), target),
-            payload::Config::Detail(cfg) => {
-                let language = Language::from(cfg.language);
-                make_code(cfg.code, &language, target)
-            }
+            payload::Config::Simple(code) => mk_simple_code(code, target),
+            payload::Config::Detail(cfg) => mk_detail_code(cfg, target),
         };
         let depend_plugins = value
             .depend_plugins
