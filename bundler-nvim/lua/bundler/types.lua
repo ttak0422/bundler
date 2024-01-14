@@ -14,6 +14,7 @@
 ---@field loaded_modules { [string]: boolean }
 ---@field load_plugin fun(self: Bundler, id: string)
 ---@field load_plugins fun(self: Bundler, path: string)
+---@field get_root fun(): string
 
 ---@class LoggerLevelConfig
 ---@field name string

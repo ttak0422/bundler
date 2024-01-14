@@ -1,6 +1,9 @@
 ---@class Logger
 local log = require("bundler.log")
 
+--- internal params.
+local _root
+
 --- utils.
 local au = vim.api.nvim_create_autocmd
 local packadd = function(path)
@@ -23,6 +26,7 @@ M.loaded_modules = {}
 --- constructor.
 M.new = function(opts)
 	local self = setmetatable({}, { __index = M })
+	_root = opts.root
 	self.root = opts.root
 	self.timer = opts.timer
 	log.new({
@@ -145,6 +149,10 @@ M.load_plugins = function(self, path)
 	for _, p in ipairs(dofile(path)) do
 		self:load_plugin(p)
 	end
+end
+
+M.get_root = function()
+	return _root
 end
 
 return M
