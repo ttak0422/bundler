@@ -24,12 +24,7 @@
     };
     crane = {
       url = "github:ipetkov/crane";
-      inputs = {
-        flake-utils.follows = "flake-utils";
-        nixpkgs.follows = "nixpkgs";
-        flake-compat.follows = "flake-compat";
-        rust-overlay.follows = "";
-      };
+      inputs.nixpkgs.follows = "nixpkgs";
     };
   };
 
@@ -39,7 +34,9 @@
       let
         inherit (flake-parts-lib) importApply;
         flakeModules = {
-          nvim = importApply ./nix/flake-module.nix { inherit withSystem; };
+          neovim =
+            importApply ./nix/neovim-flake-module.nix { inherit withSystem; };
+          vim = importApply ./nix/vim-flake-module.nix { inherit withSystem; };
         };
 
       in {
@@ -48,6 +45,8 @@
           let
             inherit (import ./nix/bundler.nix { inherit system pkgs crane; })
               bundler toolchain;
+            inherit (import ./nix/bundler-vim.nix { inherit pkgs; })
+              bundler-vim;
             inherit (import ./nix/bundler-nvim.nix { inherit pkgs; })
               bundler-nvim;
 
@@ -58,6 +57,7 @@
             };
             packages = {
               bundler = bundler.package;
+              bundler-vim = bundler-vim.package;
               bundler-nvim = bundler-nvim.package;
             };
             checks = {
@@ -76,7 +76,8 @@
             };
             devShells.default = pkgs.mkShell {
               inherit (self'.checks.pre-commit-check) shellHook;
-              packages = [ toolchain pkgs.rust-analyzer-nightly ]
+              packages = [ toolchain ]
+                ++ (with pkgs; [ mdbook rust-analyzer-nightly ])
                 ++ (with pkgs; lib.optional stdenv.isDarwin libiconv);
               inputsFrom = [ bundler ];
               RUST_BACKTRACE = "full";

@@ -1,6 +1,9 @@
 ---@class Logger
 local log = require("bundler.log")
 
+--- internal params.
+local _root
+
 --- utils.
 local au = vim.api.nvim_create_autocmd
 local packadd = function(path)
@@ -23,8 +26,9 @@ M.loaded_modules = {}
 --- constructor.
 M.new = function(opts)
 	local self = setmetatable({}, { __index = M })
+	_root = opts.root
 	self.root = opts.root
-	self.lazy_time = opts.lazy_time
+	self.timer = opts.timer
 	log.new({
 		plugin = "bundler-nvim",
 		level = opts.log_level,
@@ -35,8 +39,9 @@ end
 
 M.setup_loader = function(self)
 	log.debug("[setup_loader] start", self.root)
-	dofile(self.root .. "/startup")
-
+	for _, id in ipairs(dofile(self.root .. "/startup_keys")) do
+		self:startup(id)
+	end
 	for _, ev in ipairs(dofile(self.root .. "/event_keys")) do
 		log.debug("ev:", ev)
 		au({ ev }, {
@@ -80,20 +85,29 @@ M.setup_loader = function(self)
 		end
 	end)
 	vim.defer_fn(function()
-		self:load_plugins(self.root .. "/lazys")
-	end, self.lazy_time)
-	self.denops_plugins = dofile(self.root .. "/denops")
+		self:load_plugins(self.root .. "/timer_clients")
+	end, self.timer)
+	self.denops_plugins = dofile(self.root .. "/denops_clients")
 	log.debug("[setup_loader] end")
 end
 
-M.configure = function(self, id, is_pre)
-	log.debug(is_pre and "[pre_config]" or "[config]", "start", id)
-	local dir = is_pre and "/pre_config/" or "/config/"
+M.startup = function(self, id)
+	log.debug("[startup] start", id)
+	local ok, err_msg = pcall(dofile, self.root .. "/startup/" .. id)
+	if not ok then
+		log.error(id, "startup error:", err_msg or "-- no msg --")
+	end
+	log.debug("[startup] end", id)
+end
+
+M.config = function(self, id, is_pre)
+	log.debug(is_pre and "[pre_config]" or "[post_config]", "start", id)
+	local dir = is_pre and "/pre_config/" or "/post_config/"
 	local ok, err_msg = pcall(dofile, self.root .. dir .. id)
 	if not ok then
 		log.error(id, "configure error:", err_msg or "-- no msg --")
 	end
-	log.debug(is_pre and "[pre_config]" or "[config]", "end", id)
+	log.debug(is_pre and "[pre_config]" or "[post_config]", "end", id)
 end
 
 M.load_denops = function(self, id)
@@ -118,15 +132,15 @@ M.load_plugin = function(self, id)
 	if not self.loaded_plugins[id] then
 		log.debug("[load_plugin] start", id)
 		self.loaded_plugins[id] = true
-		self:configure(id, true)
-		self:load_plugins(self.root .. "/depends/" .. id)
-		self:load_plugins(self.root .. "/depend_bundles/" .. id)
+		self:config(id, true)
+		self:load_plugins(self.root .. "/depend_plugins/" .. id)
+		self:load_plugins(self.root .. "/depend_groups/" .. id)
 		self:load_plugins(self.root .. "/plugins/" .. id)
 		packadd(self.root .. "/plugin/" .. id)
 		if self.denops_plugins[id] then
 			self:load_denops(id)
 		end
-		self:configure(id, false)
+		self:config(id, false)
 		log.debug("[load_plugin] end", id)
 	end
 end
@@ -135,6 +149,10 @@ M.load_plugins = function(self, path)
 	for _, p in ipairs(dofile(path)) do
 		self:load_plugin(p)
 	end
+end
+
+M.get_root = function()
+	return _root
 end
 
 return M

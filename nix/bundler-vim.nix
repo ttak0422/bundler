@@ -1,9 +1,9 @@
 { pkgs }: {
-  bundler-nvim = {
+  bundler-vim = {
     package = pkgs.vimUtils.buildVimPlugin {
-      pname = "bundler-nvim";
+      pname = "bundler-vim";
       version = "2.0.0";
-      src = ./../bundler-nvim;
+      src = ./../bundler-vim;
     };
   };
 }
