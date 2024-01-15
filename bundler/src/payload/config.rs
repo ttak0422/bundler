@@ -62,9 +62,6 @@ pub struct BundlerConfig {
     pub lazy_plugins: Vec<lazy::VimPluginPackage>,
     pub lazy_groups: Vec<group::LazyGroup>,
     pub package: String,
-    pub with_node_js: bool,
-    pub with_python3: bool,
-    pub with_ruby: bool,
     pub after: AfterOption,
 }
 
