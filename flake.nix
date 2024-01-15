@@ -36,6 +36,7 @@
         flakeModules = {
           neovim =
             importApply ./nix/neovim-flake-module.nix { inherit withSystem; };
+          vim = importApply ./nix/vim-flake-module.nix { inherit withSystem; };
         };
 
       in {
@@ -44,6 +45,8 @@
           let
             inherit (import ./nix/bundler.nix { inherit system pkgs crane; })
               bundler toolchain;
+            inherit (import ./nix/bundler-vim.nix { inherit pkgs; })
+              bundler-vim;
             inherit (import ./nix/bundler-nvim.nix { inherit pkgs; })
               bundler-nvim;
 
@@ -54,6 +57,7 @@
             };
             packages = {
               bundler = bundler.package;
+              bundler-vim = bundler-vim.package;
               bundler-nvim = bundler-nvim.package;
             };
             checks = {

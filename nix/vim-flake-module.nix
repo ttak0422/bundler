@@ -6,64 +6,39 @@ in {
     perSystem = mkPerSystemOption ({ pkgs, ... }:
       let
         inherit (lib) types mkEnableOption mkOption;
-        neovim = {
+        vim = {
           target = mkOption {
-            type = types.enum [ "neovim" ];
-            default = "neovim";
+            type = types.enum [ "vim" ];
+            default = "vim";
             description = "internal usage";
             visible = false;
           };
           package = mkOption {
             type = types.package;
-            description = "Neovim package";
-            default = pkgs.neovim-unwrapped;
-          };
-          extraPackages = mkOption {
-            type = with types; listOf package;
-            description = "Extra packages to install";
-            default = [ ];
+            description = "vim package configurable";
+            default = pkgs.vim-full;
+            visible = false;
           };
           extraConfig = mkOption {
             type = types.lines;
-            description =
-              "Extra configuration (viml) to add to top of init.vim";
-            default = "";
-          };
-          extraLuaConfig = mkOption {
-            type = types.lines;
-            description = "Extra configuration (lua) to add to top of init.vim";
+            description = "configure at startup";
             default = "";
           };
           after = {
             ftplugin = mkOption {
               type = with types; attrsOf lines;
-              description = "after/ftplugin configuration (viml)";
-              example = ''
-                {
-                  lua = "setlocal expandtab";
-                  nix = builtins.readFile ./path/to/after/ftplugin/nix.vim;
-                  # ...
-                }
-              '';
+              description = "not yet support";
               default = { };
             };
-          };
-          withNodeJs = mkEnableOption "withNodeJs" // {
-            description = "Alias for neovim.withNodeJs";
-          };
-          withPython3 = mkEnableOption "withPython3" // {
-            description = "Alias for neovim.withPython3";
-          };
-          withRuby = mkEnableOption "withRuby" // {
-            description = "Alias for neovim.withRuby";
           };
         };
         bundlerPlugin = let
           pluginConfigDetail = types.submodule {
             options = {
               language = mkOption {
-                type = types.enum [ "vim" "lua" ];
+                type = types.enum [ "vim" ];
                 default = "vim";
+                visible = false;
               };
               code = mkOption {
                 type = types.lines;
@@ -80,13 +55,14 @@ in {
               plugin = mkOption { type = types.package; };
               startupConfig = mkOption {
                 type = with types; either lines pluginConfigDetail;
-                description = "Configuration to add before plugin is loaded";
+                description = "not yet support";
                 default = "";
               };
               extraPackages = mkOption {
                 type = with types; listOf package;
-                description = "Extra packages to install";
+                description = "not yet support";
                 default = [ ];
+                visible = false;
               };
             };
           };
@@ -95,97 +71,103 @@ in {
               plugin = mkOption { type = types.package; };
               startupConfig = mkOption {
                 type = with types; either lines pluginConfigDetail;
-                description = "Configuration to add before plugin is loaded";
+                description = "not yet support";
                 default = "";
               };
               extraPackages = mkOption {
                 type = with types; listOf package;
-                description = "Extra packages to install";
+                description = "not yet support";
                 default = [ ];
               };
               preConfig = mkOption {
                 type = with types; either lines pluginConfigDetail;
-                description = "Configuration to add before plugin is loaded";
+                description = "not yet support";
                 default = "";
               };
               postConfig = mkOption {
                 type = with types; either lines pluginConfigDetail;
-                description = "Configuration to add after plugin is loaded";
+                description = "not yet support";
                 default = "";
               };
               dependPlugins = mkOption {
                 type = with types; listOf (either package lazyPluginConfig);
-                description = "Plugins to load before this plugin";
+                description = "not yet support";
                 default = [ ];
               };
               dependGroups = mkOption {
                 type = with types; listOf str;
-                description = "Groups to load before this plugin";
+                description = "not yet support";
                 default = [ ];
               };
               onModules = mkOption {
                 type = with types; listOf str;
+                description = "not yet support";
                 default = [ ];
+                visible = false;
               };
               onEvents = mkOption {
                 type = with types; listOf str;
+                description = "not yet support";
                 default = [ ];
               };
               onFiletypes = mkOption {
                 type = with types; listOf str;
+                description = "not yet support";
                 default = [ ];
               };
               onCommands = mkOption {
                 type = with types; listOf str;
+                description = "not yet support";
                 default = [ ];
               };
-              useTimer = mkEnableOption "useTimer";
-              useDenops = mkEnableOption "useDenops";
+              useTimer = mkOption {
+                type = types.bool;
+                description = "not yet support";
+                default = false;
+              };
+              useDenops = mkOption {
+                type = types.bool;
+                description = "not yet support";
+                default = false;
+              };
             };
           };
+
           lazyGroupConfig = types.submodule {
             options = {
-              name = mkOption {
-                type = types.str;
-                description = "Name of the group";
-              };
+              name = mkOption { type = types.str; };
               plugins = mkOption {
                 type = with types; listOf (either package lazyPluginConfig);
                 default = [ ];
               };
               startupConfig = mkOption {
                 type = with types; either lines pluginConfigDetail;
-                description = "Configuration to add before plugin is loaded";
                 default = "";
               };
               extraPackages = mkOption {
                 type = with types; listOf package;
-                description = "Extra packages to install";
                 default = [ ];
               };
               preConfig = mkOption {
                 type = with types; either lines pluginConfigDetail;
-                description = "Configuration to add before plugin is loaded";
                 default = "";
               };
               postConfig = mkOption {
                 type = with types; either lines pluginConfigDetail;
-                description = "Configuration to add after plugin is loaded";
                 default = "";
               };
               dependPlugins = mkOption {
                 type = with types; listOf (either package lazyPluginConfig);
-                description = "Plugins to load before this plugin";
                 default = [ ];
               };
               dependGroups = mkOption {
                 type = with types; listOf str;
-                description = "Groups to load before this plugin";
                 default = [ ];
               };
               onModules = mkOption {
                 type = with types; listOf str;
                 default = [ ];
+                visible = false;
               };
               onEvents = mkOption {
                 type = with types; listOf str;
@@ -205,46 +187,32 @@ in {
         in {
           eagerPlugins = mkOption {
             type = with types; listOf (either package eagerPluginConfig);
-            description = "Plugins to install and load on startup";
             default = [ ];
           };
           lazyPlugins = mkOption {
             type = with types; listOf (either package lazyPluginConfig);
-            description = "Plugins to install and load on demand";
             default = [ ];
           };
           lazyGroups = mkOption {
             type = types.listOf lazyGroupConfig;
-            description = "Plugin groups to install and load on demand";
             default = [ ];
-          };
-          timer = mkOption {
-            type = types.int;
-            description =
-              "Time in milliseconds to wait before loading lazy plugins";
-            default = 100;
-          };
-          logLevel = mkOption {
-            type = types.enum [ "debug" "info" "warn" "error" ];
-            description = "log level of bundler-nvim";
-            default = "warn";
           };
         };
       in {
-        options.bundler-nvim = mkOption {
-          description = "bundler-nvim configuration";
+        options.bundler-vim = mkOption {
+          description = "bundler-vim configuration";
           type = with types;
             attrsOf (submodule {
               options = {
                 packageNamePrefix = mkOption {
                   type = types.str;
-                  default = "bundler-nvim";
+                  default = "bundler-vim";
                 };
                 appNamePrefix = mkOption {
                   type = types.str;
-                  default = "bundler-nvim";
+                  default = "bundler-vim";
                 };
-              } // neovim // bundlerPlugin;
+              } // vim // bundlerPlugin;
             });
         };
       });
@@ -254,16 +222,14 @@ in {
     perSystem = { system, config, lib, pkgs, ... }:
       let
         inherit (builtins) toJSON;
-        inherit (lib)
-          mapAttrs' nameValuePair flatten optionalString makeBinPath
-          escapeShellArgs;
+        inherit (lib) mapAttrs' nameValuePair flatten;
         inherit (lib.lists) unique;
         inherit (pkgs) writeText;
         inherit (pkgs.stdenv) mkDerivation;
 
         bundler = withSystem system ({ config, ... }: config.packages.bundler);
-        bundler-nvim =
-          withSystem system ({ config, ... }: config.packages.bundler-nvim);
+        bundler-vim =
+          withSystem system ({ config, ... }: config.packages.bundler-vim);
 
         # (package | eagerPluginConfig | lazyPluginConfig | lazyGroupConfig) -> package[]
         extractVimPlugins = x:
@@ -277,35 +243,16 @@ in {
             depends = flatten (map extractVimPlugins (x.dependPlugins or [ ]));
           in arg ++ depends;
 
-        # (package | eagerPluginConfig | lazyPluginConfig | lazyGroupConfig) -> package[]
-        extractExtraPackages = x:
+        mkVimPackage = name: cfg:
           let
-            arg = (x.extraPackages or [ ]) ++ (if x ? plugins then
-              map extractExtraPackages x.plugins
-            else
-              [ ]);
-            depends =
-              flatten (map extractExtraPackages (x.dependPlugins or [ ]));
-          in arg ++ depends;
-
-        mkNvimPackage = name: cfg:
-          let
-            eagerVimPluginPackages = [ bundler-nvim ]
+            eagerVimPluginPackages = [ bundler-vim ]
               ++ unique (flatten (map extractVimPlugins cfg.eagerPlugins));
             lazyVimPluginPackages =
               let plugins = with cfg; lazyPlugins ++ lazyGroups;
               in unique (flatten (map extractVimPlugins plugins));
-            normalizedStartVimPluginPackages =
-              map (p: { plugin = p; }) eagerVimPluginPackages;
-            normalizedOptVimPluginPackages = map (p: {
-              plugin = p;
-              optional = true;
-            }) lazyVimPluginPackages;
 
-            extraPackages =
-              let plugins = with cfg; eagerPlugins ++ lazyPlugins ++ lazyGroups;
-              in unique (cfg.extraPackages
-                ++ (flatten (map extractExtraPackages plugins)));
+            # TODO: support extra packages.
+            extraPackages = [ ];
 
             payload = writeText "payload.json" (toJSON {
               config = cfg;
@@ -316,13 +263,13 @@ in {
                 bundlerBin = bundler;
                 idMap = map (p: {
                   package = p;
-                  pluginId = p.pname;
+                  pluginId = p.name;
                 }) (eagerVimPluginPackages ++ lazyVimPluginPackages);
               };
             });
 
             cfgFiles = mkDerivation {
-              pname = "bundler-nvim-config";
+              pname = "bundler-vim-config";
               version = "2.0.0";
               phases = [ "installPhase" ];
               installPhase = ''
@@ -331,32 +278,19 @@ in {
               '';
             };
 
-            extraPackagesArgs = optionalString (extraPackages != [ ])
-              ''--suffix PATH : "${makeBinPath extraPackages}"'';
+          in cfg.package.customize {
+            vimrcConfig.customRC = ''
+              " WIP
+              " payload: ${payload}
+              " cfgFiles: ${cfgFiles}
 
-            neovimConfig = pkgs.neovimUtils.makeNeovimConfig {
-              inherit (cfg) withRuby withPython3 withNodeJs;
-              customRC = ''
-                " ${name}
-                ${cfg.extraConfig}
-                lua << EOF
-                ${cfg.extraLuaConfig}
-                vim.opt.runtimepath:append("${cfgFiles}/after");
-                require("bundler").new({
-                  root = "${cfgFiles}",
-                  timer = ${toString cfg.timer},
-                  log_level = "${cfg.logLevel}",
-                }):setup_loader()
-                EOF
-              '';
-              wrapRc = true;
-              plugins = normalizedStartVimPluginPackages
-                ++ normalizedOptVimPluginPackages;
+              ${cfg.extraConfig}
+            '';
+            vimrcConfig.packages.bundlerVim = {
+              start = eagerVimPluginPackages;
+              opt = lazyVimPluginPackages;
             };
-          in pkgs.wrapNeovimUnstable cfg.package (neovimConfig // {
-            wrapperArgs = (escapeShellArgs neovimConfig.wrapperArgs) + " "
-              + extraPackagesArgs;
-          });
+          };
       in {
         packages = mapAttrs' (name: cfg:
           let
@@ -364,8 +298,7 @@ in {
               "${cfg.packageNamePrefix}"
             else
               "${cfg.packageNamePrefix}-${name}";
-          in nameValuePair fullName (mkNvimPackage name cfg))
-          config.bundler-nvim;
+          in nameValuePair fullName (mkVimPackage name cfg)) config.bundler-vim;
 
         apps = mapAttrs' (name: cfg:
           let
@@ -375,8 +308,8 @@ in {
               "${cfg.appNamePrefix}-${name}";
           in nameValuePair fullName {
             type = "app";
-            program = "${mkNvimPackage name cfg}/bin/nvim";
-          }) config.bundler-nvim;
+            program = "${mkVimPackage name cfg}/bin/vim";
+          }) config.bundler-vim;
       };
   };
 }
