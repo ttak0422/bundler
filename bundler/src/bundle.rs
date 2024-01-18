@@ -134,12 +134,18 @@ pub fn bundle<'a>(config: &'a content::Content) -> Bundle<'a> {
             content::Package::EagerPlugin(p) => {
                 let id = config.id_table.get(p);
                 load_option.plugin_paths.insert(id, p.nix_package.as_str());
-                load_option.startup_plugins.push(id);
+                if !p.startup_config.is_empty() {
+                    load_option.startup_config_plugins.push(id);
+                }
             }
             content::Package::LazyPlugin(p) => {
                 let id = config.id_table.get(p);
 
                 load_option.plugin_paths.insert(id, p.nix_package.as_str());
+
+                if !p.startup_config.is_empty() {
+                    load_option.startup_config_plugins.push(id);
+                }
 
                 for module in &p.on_modules {
                     load_option
@@ -179,6 +185,10 @@ pub fn bundle<'a>(config: &'a content::Content) -> Bundle<'a> {
             }
             content::Package::LazyGroup(g) => {
                 let id = g.name.as_str();
+
+                if !g.startup_config.is_empty() {
+                    load_option.startup_config_plugins.push(id);
+                }
 
                 for module in &g.on_modules {
                     load_option
@@ -225,8 +235,8 @@ pub fn bundle<'a>(config: &'a content::Content) -> Bundle<'a> {
         plugins.sort();
         plugins.dedup();
     }
-    load_option.startup_plugins.sort();
-    load_option.startup_plugins.dedup();
+    load_option.startup_config_plugins.sort();
+    load_option.startup_config_plugins.dedup();
     load_option.timer_clients.sort();
     load_option.timer_clients.dedup();
     load_option.denops_clients.sort();

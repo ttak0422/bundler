@@ -94,7 +94,7 @@ impl<'a> Exporter for LoadOption<'a> {
         write!(
             startup_plugins_file,
             "return {}",
-            to_lua_table(&self.startup_plugins)
+            to_lua_table(&self.startup_config_plugins)
         )?;
 
         // modules

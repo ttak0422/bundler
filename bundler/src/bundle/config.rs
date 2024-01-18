@@ -15,7 +15,7 @@ pub struct Component<'a> {
 #[derive(Default)]
 pub struct LoadOption<'a> {
     pub plugin_paths: HashMap<PluginId<'a>, PluginPath<'a>>,
-    pub startup_plugins: Vec<&'a str>,
+    pub startup_config_plugins: Vec<&'a str>,
     pub on_modules: HashMap<&'a str, Vec<&'a str>>,
     pub on_events: HashMap<&'a str, Vec<&'a str>>,
     pub on_filetypes: HashMap<&'a str, Vec<&'a str>>,
