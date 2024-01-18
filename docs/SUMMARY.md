@@ -6,7 +6,6 @@
 ---
 # Configuration
 
-- [Common Configuration](./common-configuration.md)
 - [Neovim Configuration](./neovim-configuration.md)
 - [Vim Configuration](./vim-configuration.md)
 
