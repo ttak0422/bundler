@@ -59,28 +59,28 @@ environment.systemPackages = [
 | postConfig | `with types; either lines pluginConfigDetail` | `""` | setup code executed after load plugin |
 | dependPlugins | `with types; listOf (either package lazyPluginConfig)` | `[]` | plugins on which this plugin depends |
 | dependGroups | `with types; listOf str` | `[]` | groups on which this plugin depends |
-| onModules | `with types; listOf str` | `[]` | |
-| onEvents | `with types; listOf str` | `[]` | |
-| onFiletypes | `with types; listOf str` | `[]` | |
-| onCommands | `with types; listOf str` | `[]` | |
-| useTimer | `types.bool` | `false` | |
-| useDenops | `types.bool` | `false` | |
+| onModules | `with types; listOf str` | `[]` | load plugin when configured modules is called |
+| onEvents | `with types; listOf str` | `[]` | load plugin when configured events fires |
+| onFiletypes | `with types; listOf str` | `[]` | load plugin when configured filetype is read |
+| onCommands | `with types; listOf str` | `[]` | load plugin when configured commands execute |
+| useTimer | `types.bool` | `false` | set `true` to load the plugin using timer |
+| useDenops | `types.bool` | `false` | must be explicitly set to `true` in the denops plugin |
 
 ### lazyGroupConfig
 
 | name | type | default | description |
 | :-: | :-: | :-: | :- |
 | name | `types.str` | **required** | group name |
-| plugins | `with types; listOf` | **required** | group name |
+| plugins | `with types; listOf` | `[]` | group name |
 | startupConfig | `with types; either lines pluginConfigDetail` | `""` | setup code executed at startup |
 | extraPackages | `with types; listOf package` | `[]` | nix packages |
 | preConfig | `with types; either lines pluginConfigDetail` | `""` | setup code executed before load plugin |
 | postConfig | `with types; either lines pluginConfigDetail` | `""` | setup code executed after load plugin |
 | dependPlugins | `with types; listOf (either package lazyPluginConfig)` | `[]` | plugins on which this plugin depends |
 | dependGroups | `with types; listOf str` | `[]` | groups on which this plugin depends |
-| onModules | `with types; listOf str` | `[]` | |
-| onEvents | `with types; listOf str` | `[]` | |
-| onFiletypes | `with types; listOf str` | `[]` | |
-| onCommands | `with types; listOf str` | `[]` | |
-| useTimer | `types.bool` | `false` | |
+| onModules | `with types; listOf str` | `[]` | load plugin when configured modules is called |
+| onEvents | `with types; listOf str` | `[]` | load plugin when configured events fires |
+| onFiletypes | `with types; listOf str` | `[]` | load plugin when configured filetype is read |
+| onCommands | `with types; listOf str` | `[]` | load plugin when configured commands execute |
+| useTimer | `types.bool` | `false` | set `true` to load the plugin using timer |
 
