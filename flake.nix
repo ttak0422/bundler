@@ -26,6 +26,7 @@
       url = "github:ipetkov/crane";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+    nix-filter.url = "github:numtide/nix-filter";
   };
 
   outputs = inputs@{ flake-parts, crane, pre-commit-hooks, ... }:
@@ -39,7 +40,6 @@
             vim =
               importApply ./nix/vim-flake-module.nix { inherit withSystem; };
           };
-
         in {
           systems = [ "x86_64-linux" "aarch64-linux" "aarch64-darwin" ];
           perSystem = { self', system, pkgs, lib, ... }:
@@ -50,16 +50,27 @@
                 bundler-vim;
               inherit (import ./nix/bundler-nvim.nix { inherit pkgs; })
                 bundler-nvim;
-
             in {
               _module.args.pkgs = import inputs.nixpkgs {
                 inherit system;
-                overlays = with inputs; [ fenix.overlays.default ];
+                overlays = with inputs; [
+                  fenix.overlays.default
+                  nix-filter.overlays.default
+                ];
               };
               packages = {
                 bundler = bundler.package;
                 bundler-vim = bundler-vim.package;
                 bundler-nvim = bundler-nvim.package;
+                mdbook = let
+                  inherit (pkgs) nix-filter;
+                  src = nix-filter {
+                    root = ./.;
+                    include = [ ./docs ./book.toml (nix-filter.matchExt "md") ];
+                  };
+                in pkgs.runCommand "mdbook" { } ''
+                  ${pkgs.mdbook}/bin/mdbook build --dest-dir $out ${src}
+                '';
               };
               checks = {
                 pre-commit-check = pre-commit-hooks.lib.${system}.run {
