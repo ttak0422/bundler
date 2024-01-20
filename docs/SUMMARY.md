@@ -1,16 +1,13 @@
 # Summary
 
-[Introduction](./introduction.md)
+[Introduction](./../README.md)
 [Quick Start](./quick-start.md)
 
 ---
 # Configuration
 
-- [Common Configuration](./common-configuration.md)
 - [Neovim Configuration](./neovim-configuration.md)
+    - [pluginConfigDetail.args example](./neovim-configuration-example-args.md)
 - [Vim Configuration](./vim-configuration.md)
 
 ---
-# Usage
-
-
