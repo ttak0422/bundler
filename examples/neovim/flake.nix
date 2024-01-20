@@ -27,6 +27,7 @@
 
             # Define lua code to be executed at startup.
             extraLuaConfig = ''
+              vim.g.mapleader = " "
               vim.loader.enable()
             '';
 
