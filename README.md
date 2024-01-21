@@ -8,9 +8,3 @@
   <img alt="license" src="https://img.shields.io/github/license/ttak0422/bundler?style=for-the-badge">
   <p>Vim/Neovim package manager for Nix.</p>
 </div>
-
-## Features
-Nix flake module. This module provides a package of Vim environments from minimal to full configuration.
-
-## License
-This project is licensed under the MIT license.

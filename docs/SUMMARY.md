@@ -1,6 +1,6 @@
 # Summary
 
-[Introduction](./../README.md)
+[Introduction](./introduction.md)
 [Quick Start](./quick-start.md)
 
 ---
