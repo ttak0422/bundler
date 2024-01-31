@@ -114,17 +114,17 @@ M.load_denops = function(self, id)
 	local path = dofile(self.root .. "/rtp/" .. id)
 	local candidates = vim.fn.globpath(path, "denops/*/main.ts", true, true)
 	for _, c in ipairs(candidates) do
-		local denops_plugin = vim.fn.fnamemodify(c, ":h:t")
+		local name = vim.fn.fnamemodify(c, ":h:t")
+		local script = path .. "/denops/" .. name .. "/main.ts"
 		local ok, status = pcall(vim.fn["denops#server#status"])
 		if not ok then
 			log.error(id, "load error: `denops.vim` has not been loaded yet.")
 			return
 		end
 		if status == "running" then
-			-- Note: denops#plugin#register() may fail
-			pcall(vim.fn["denops#plugin#register"], denops_plugin, { mode = "skip" })
+			pcall(vim.fn["denops#plugin#load"], name, script)
 		end
-		vim.fn["denops#plugin#wait"](denops_plugin)
+		vim.fn["denops#plugin#wait"](name)
 	end
 end
 
