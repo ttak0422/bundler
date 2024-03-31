@@ -122,7 +122,10 @@ M.load_denops = function(self, id)
 			return
 		end
 		if status == "running" then
-			pcall(vim.fn["denops#plugin#load"], name, script)
+			ok = pcall(vim.fn["denops#plugin#load"], name, script)
+			if not ok then
+				log.error("failed to load denops plugin: ", name)
+			end
 		end
 		vim.fn["denops#plugin#wait"](name)
 	end
