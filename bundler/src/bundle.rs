@@ -211,7 +211,13 @@ pub fn bundle<'a>(config: &'a content::Content) -> Bundle<'a> {
                         .or_default()
                         .push(id);
                 }
-
+                for command in &g.on_commands {
+                    load_option
+                        .on_commands
+                        .entry(command.as_str())
+                        .or_default()
+                        .push(id);
+                }
                 if g.is_timer_client {
                     load_option.timer_clients.push(id);
                 }

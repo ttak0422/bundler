@@ -96,7 +96,7 @@ fn mk_simple_code(code: String, target: &Target) -> String {
     } else {
         match (target, language) {
             (Target::Vim, Language::Vim) => code,
-            (Target::Neovim, Language::Vim) => format!("vim.cmd([[{}]])", code),
+            (Target::Neovim, Language::Vim) => format!("vim.cmd([=[{}]=])", code),
             (Target::Neovim, Language::Lua) => code,
             _ => panic!("invalid target and language combination"),
         }
@@ -108,7 +108,7 @@ fn mk_detail_code(cfg: payload::DetailConfig, target: &Target) -> String {
     let args = mk_args_code(cfg.args, &language);
     match (target, language) {
         (Target::Vim, Language::Vim) => format!("{}\n{}", args, cfg.code),
-        (Target::Neovim, Language::Vim) => format!("vim.cmd([[\n{}\n{}]])", args, cfg.code),
+        (Target::Neovim, Language::Vim) => format!("vim.cmd([=[\n{}\n{}]=])", args, cfg.code),
         (Target::Neovim, Language::Lua) => format!("{}\n{}", args, cfg.code),
         _ => panic!("invalid target and language combination"),
     }
