@@ -270,7 +270,7 @@ in {
 
             cfgFiles = mkDerivation {
               pname = "bundler-vim-config";
-              version = "2.2.0";
+              version = "2.2.1";
               phases = [ "installPhase" ];
               installPhase = ''
                 mkdir $out
