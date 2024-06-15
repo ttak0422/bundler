@@ -8,3 +8,7 @@
   <img alt="license" src="https://img.shields.io/github/license/ttak0422/bundler?style=for-the-badge">
   <p>Vim/Neovim package manager for Nix.</p>
 </div>
+
+> [!CAUTION]
+> Please note that `v3` is currently in the experimental stage. Features and functionalities may change frequently, and there might be bugs or unstable behavior.
+
