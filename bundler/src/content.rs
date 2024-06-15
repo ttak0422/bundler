@@ -7,7 +7,7 @@ mod id_table;
 
 use crate::content::common::Target;
 pub use crate::content::config::{
-    AfterOption, Content, EagerPlugin, LazyGroup, LazyPlugin, Package, Info
+    AfterOption, Content, EagerPlugin, Info, LazyGroup, LazyPlugin, Package,
 };
 use crate::content::from_target::FromTarget;
 // TODO: capsule

@@ -95,6 +95,7 @@
               checks = {
                 pre-commit-check = pre-commit-hooks.lib.${system}.run {
                   src = ./.;
+                  settings.rust.cargoManifestPath = "./bundler/Cargo.toml";
                   hooks = {
                     deadnix.enable = true;
                     stylua.enable = true;
@@ -103,8 +104,12 @@
                       package = pkgs.nixfmt-rfc-style;
                     };
                     statix.enable = true;
-                    # WIP
-                    # rustfmt.enable = true;
+                    rustfmt = {
+                      enable = true;
+                      packageOverrides = with pkgs.fenix.stable; {
+                        inherit cargo rustfmt;
+                      };
+                    };
                   };
                 };
                 inherit (bundler) clippy nextest;

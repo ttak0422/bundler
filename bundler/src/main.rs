@@ -1,9 +1,9 @@
 #[cfg_attr(test, macro_use)]
 extern crate derive_builder;
 
+mod bundle;
 mod constant;
 mod content;
-mod bundle;
 mod payload;
 mod util;
 
