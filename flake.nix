@@ -10,10 +10,9 @@
       flake = false;
     };
     pre-commit-hooks = {
-      url = "github:cachix/pre-commit-hooks.nix";
+      url = "github:cachix/git-hooks.nix";
       inputs = {
         flake-compat.follows = "flake-compat";
-        flake-utils.follows = "flake-utils";
         nixpkgs.follows = "nixpkgs";
         nixpkgs-stable.follows = "nixpkgs";
       };
