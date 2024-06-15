@@ -1,8 +1,13 @@
-{ system, pkgs, crane }:
+{
+  system,
+  pkgs,
+  crane,
+}:
 let
   inherit (pkgs.lib) optionals;
   inherit (pkgs.stdenv) isDarwin;
-in rec {
+in
+rec {
   toolchain = pkgs.fenix.stable.withComponents [
     "cargo"
     "clippy"
@@ -16,8 +21,13 @@ in rec {
   bundler = with craneLib; rec {
     commonArgs = {
       src = cleanCargoSource (path ./../bundler);
-      buildInputs = optionals isDarwin
-        (with pkgs; [ libiconv darwin.apple_sdk.frameworks.Security ]);
+      buildInputs = optionals isDarwin (
+        with pkgs;
+        [
+          libiconv
+          darwin.apple_sdk.frameworks.Security
+        ]
+      );
       nativeBuildgInputs = [ ];
     };
     artifacts = buildDepsOnly (commonArgs // { pname = "bundler-deps"; });

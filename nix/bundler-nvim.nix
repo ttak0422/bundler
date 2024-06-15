@@ -1,4 +1,5 @@
-{ pkgs }: {
+{ pkgs }:
+{
   bundler-nvim = {
     package = pkgs.vimUtils.buildVimPlugin {
       pname = "bundler-nvim";

@@ -1,9 +1,17 @@
 { withSystem, ... }:
-{ config, lib, flake-parts-lib, ... }:
-let inherit (flake-parts-lib) mkPerSystemOption;
-in {
+{
+  config,
+  lib,
+  flake-parts-lib,
+  ...
+}:
+let
+  inherit (flake-parts-lib) mkPerSystemOption;
+in
+{
   options = {
-    perSystem = mkPerSystemOption ({ pkgs, ... }:
+    perSystem = mkPerSystemOption (
+      { pkgs, ... }:
       let
         inherit (lib) types mkEnableOption mkOption;
         vim = {
@@ -32,176 +40,180 @@ in {
             };
           };
         };
-        bundlerPlugin = let
-          pluginConfigDetail = types.submodule {
-            options = {
-              language = mkOption {
-                type = types.enum [ "vim" ];
-                default = "vim";
-                visible = false;
-              };
-              code = mkOption {
-                type = types.lines;
-                default = "";
-              };
-              args = mkOption {
-                type = types.attrs;
-                default = { };
-              };
-            };
-          };
-          eagerPluginConfig = types.submodule {
-            options = {
-              plugin = mkOption { type = types.package; };
-              startupConfig = mkOption {
-                type = with types; either lines pluginConfigDetail;
-                description = "not yet support";
-                default = "";
-              };
-              extraPackages = mkOption {
-                type = with types; listOf package;
-                description = "not yet support";
-                default = [ ];
-                visible = false;
+        bundlerPlugin =
+          let
+            pluginConfigDetail = types.submodule {
+              options = {
+                language = mkOption {
+                  type = types.enum [ "vim" ];
+                  default = "vim";
+                  visible = false;
+                };
+                code = mkOption {
+                  type = types.lines;
+                  default = "";
+                };
+                args = mkOption {
+                  type = types.attrs;
+                  default = { };
+                };
               };
             };
-          };
-          lazyPluginConfig = types.submodule {
-            options = {
-              plugin = mkOption { type = types.package; };
-              startupConfig = mkOption {
-                type = with types; either lines pluginConfigDetail;
-                description = "not yet support";
-                default = "";
-              };
-              extraPackages = mkOption {
-                type = with types; listOf package;
-                description = "not yet support";
-                default = [ ];
-              };
-              preConfig = mkOption {
-                type = with types; either lines pluginConfigDetail;
-                description = "not yet support";
-                default = "";
-              };
-              postConfig = mkOption {
-                type = with types; either lines pluginConfigDetail;
-                description = "not yet support";
-                default = "";
-              };
-              dependPlugins = mkOption {
-                type = with types; listOf (either package lazyPluginConfig);
-                description = "not yet support";
-                default = [ ];
-              };
-              dependGroups = mkOption {
-                type = with types; listOf str;
-                description = "not yet support";
-                default = [ ];
-              };
-              onModules = mkOption {
-                type = with types; listOf str;
-                description = "not yet support";
-                default = [ ];
-                visible = false;
-              };
-              onEvents = mkOption {
-                type = with types; listOf str;
-                description = "not yet support";
-                default = [ ];
-              };
-              onFiletypes = mkOption {
-                type = with types; listOf str;
-                description = "not yet support";
-                default = [ ];
-              };
-              onCommands = mkOption {
-                type = with types; listOf str;
-                description = "not yet support";
-                default = [ ];
-              };
-              useTimer = mkOption {
-                type = types.bool;
-                description = "not yet support";
-                default = false;
-              };
-              useDenops = mkOption {
-                type = types.bool;
-                description = "not yet support";
-                default = false;
+            eagerPluginConfig = types.submodule {
+              options = {
+                plugin = mkOption { type = types.package; };
+                startupConfig = mkOption {
+                  type = with types; either lines pluginConfigDetail;
+                  description = "not yet support";
+                  default = "";
+                };
+                extraPackages = mkOption {
+                  type = with types; listOf package;
+                  description = "not yet support";
+                  default = [ ];
+                  visible = false;
+                };
               };
             };
-          };
+            lazyPluginConfig = types.submodule {
+              options = {
+                plugin = mkOption { type = types.package; };
+                startupConfig = mkOption {
+                  type = with types; either lines pluginConfigDetail;
+                  description = "not yet support";
+                  default = "";
+                };
+                extraPackages = mkOption {
+                  type = with types; listOf package;
+                  description = "not yet support";
+                  default = [ ];
+                };
+                preConfig = mkOption {
+                  type = with types; either lines pluginConfigDetail;
+                  description = "not yet support";
+                  default = "";
+                };
+                postConfig = mkOption {
+                  type = with types; either lines pluginConfigDetail;
+                  description = "not yet support";
+                  default = "";
+                };
+                dependPlugins = mkOption {
+                  type = with types; listOf (either package lazyPluginConfig);
+                  description = "not yet support";
+                  default = [ ];
+                };
+                dependGroups = mkOption {
+                  type = with types; listOf str;
+                  description = "not yet support";
+                  default = [ ];
+                };
+                onModules = mkOption {
+                  type = with types; listOf str;
+                  description = "not yet support";
+                  default = [ ];
+                  visible = false;
+                };
+                onEvents = mkOption {
+                  type = with types; listOf str;
+                  description = "not yet support";
+                  default = [ ];
+                };
+                onFiletypes = mkOption {
+                  type = with types; listOf str;
+                  description = "not yet support";
+                  default = [ ];
+                };
+                onCommands = mkOption {
+                  type = with types; listOf str;
+                  description = "not yet support";
+                  default = [ ];
+                };
+                useTimer = mkOption {
+                  type = types.bool;
+                  description = "not yet support";
+                  default = false;
+                };
+                useDenops = mkOption {
+                  type = types.bool;
+                  description = "not yet support";
+                  default = false;
+                };
+              };
+            };
 
-          lazyGroupConfig = types.submodule {
-            options = {
-              name = mkOption { type = types.str; };
-              plugins = mkOption {
-                type = with types; listOf (either package lazyPluginConfig);
-                default = [ ];
+            lazyGroupConfig = types.submodule {
+              options = {
+                name = mkOption { type = types.str; };
+                plugins = mkOption {
+                  type = with types; listOf (either package lazyPluginConfig);
+                  default = [ ];
+                };
+                startupConfig = mkOption {
+                  type = with types; either lines pluginConfigDetail;
+                  default = "";
+                };
+                extraPackages = mkOption {
+                  type = with types; listOf package;
+                  default = [ ];
+                };
+                preConfig = mkOption {
+                  type = with types; either lines pluginConfigDetail;
+                  default = "";
+                };
+                postConfig = mkOption {
+                  type = with types; either lines pluginConfigDetail;
+                  default = "";
+                };
+                dependPlugins = mkOption {
+                  type = with types; listOf (either package lazyPluginConfig);
+                  default = [ ];
+                };
+                dependGroups = mkOption {
+                  type = with types; listOf str;
+                  default = [ ];
+                };
+                onModules = mkOption {
+                  type = with types; listOf str;
+                  default = [ ];
+                  visible = false;
+                };
+                onEvents = mkOption {
+                  type = with types; listOf str;
+                  default = [ ];
+                };
+                onFiletypes = mkOption {
+                  type = with types; listOf str;
+                  default = [ ];
+                };
+                onCommands = mkOption {
+                  type = with types; listOf str;
+                  default = [ ];
+                };
+                useTimer = mkEnableOption "useTimer";
               };
-              startupConfig = mkOption {
-                type = with types; either lines pluginConfigDetail;
-                default = "";
-              };
-              extraPackages = mkOption {
-                type = with types; listOf package;
-                default = [ ];
-              };
-              preConfig = mkOption {
-                type = with types; either lines pluginConfigDetail;
-                default = "";
-              };
-              postConfig = mkOption {
-                type = with types; either lines pluginConfigDetail;
-                default = "";
-              };
-              dependPlugins = mkOption {
-                type = with types; listOf (either package lazyPluginConfig);
-                default = [ ];
-              };
-              dependGroups = mkOption {
-                type = with types; listOf str;
-                default = [ ];
-              };
-              onModules = mkOption {
-                type = with types; listOf str;
-                default = [ ];
-                visible = false;
-              };
-              onEvents = mkOption {
-                type = with types; listOf str;
-                default = [ ];
-              };
-              onFiletypes = mkOption {
-                type = with types; listOf str;
-                default = [ ];
-              };
-              onCommands = mkOption {
-                type = with types; listOf str;
-                default = [ ];
-              };
-              useTimer = mkEnableOption "useTimer";
+            };
+          in
+          {
+            eagerPlugins = mkOption {
+              type = with types; listOf (either package eagerPluginConfig);
+              default = [ ];
+            };
+            lazyPlugins = mkOption {
+              type = with types; listOf (either package lazyPluginConfig);
+              default = [ ];
+            };
+            lazyGroups = mkOption {
+              type = types.listOf lazyGroupConfig;
+              default = [ ];
             };
           };
-        in {
-          eagerPlugins = mkOption {
-            type = with types; listOf (either package eagerPluginConfig);
-            default = [ ];
-          };
-          lazyPlugins = mkOption {
-            type = with types; listOf (either package lazyPluginConfig);
-            default = [ ];
-          };
-          lazyGroups = mkOption {
-            type = types.listOf lazyGroupConfig;
-            default = [ ];
-          };
-        };
-      in {
+      in
+      {
         options.bundler-vim = mkOption {
           description = "bundler-vim configuration";
-          type = with types;
+          type =
+            with types;
             attrsOf (submodule {
               options = {
                 packageNamePrefix = mkOption {
@@ -215,11 +227,19 @@ in {
               } // vim // bundlerPlugin;
             });
         };
-      });
+      }
+    );
   };
 
   config = {
-    perSystem = { system, config, lib, pkgs, ... }:
+    perSystem =
+      {
+        system,
+        config,
+        lib,
+        pkgs,
+        ...
+      }:
       let
         inherit (builtins) toJSON;
         inherit (lib) mapAttrs' nameValuePair flatten;
@@ -228,28 +248,34 @@ in {
         inherit (pkgs.stdenv) mkDerivation;
 
         bundler = withSystem system ({ config, ... }: config.packages.bundler);
-        bundler-vim =
-          withSystem system ({ config, ... }: config.packages.bundler-vim);
+        bundler-vim = withSystem system ({ config, ... }: config.packages.bundler-vim);
 
         # (package | eagerPluginConfig | lazyPluginConfig | lazyGroupConfig) -> package[]
-        extractVimPlugins = x:
+        extractVimPlugins =
+          x:
           let
-            arg = if x ? plugin then
-              [ x.plugin ]
-            else if x ? plugins then
-              flatten (map extractVimPlugins x.plugins)
-            else
-              [ x ];
+            arg =
+              if x ? plugin then
+                [ x.plugin ]
+              else if x ? plugins then
+                flatten (map extractVimPlugins x.plugins)
+              else
+                [ x ];
             depends = flatten (map extractVimPlugins (x.dependPlugins or [ ]));
-          in arg ++ depends;
+          in
+          arg ++ depends;
 
-        mkVimPackage = name: cfg:
+        mkVimPackage =
+          name: cfg:
           let
-            eagerVimPluginPackages = [ bundler-vim ]
-              ++ unique (flatten (map extractVimPlugins cfg.eagerPlugins));
+            eagerVimPluginPackages = [
+              bundler-vim
+            ] ++ unique (flatten (map extractVimPlugins cfg.eagerPlugins));
             lazyVimPluginPackages =
-              let plugins = with cfg; lazyPlugins ++ lazyGroups;
-              in unique (flatten (map extractVimPlugins plugins));
+              let
+                plugins = with cfg; lazyPlugins ++ lazyGroups;
+              in
+              unique (flatten (map extractVimPlugins plugins));
 
             # TODO: support extra packages.
             extraPackages = [ ];
@@ -278,7 +304,8 @@ in {
               '';
             };
 
-          in cfg.package.customize {
+          in
+          cfg.package.customize {
             vimrcConfig.customRC = ''
               " WIP
               " payload: ${payload}
@@ -291,25 +318,27 @@ in {
               opt = lazyVimPluginPackages;
             };
           };
-      in {
-        packages = mapAttrs' (name: cfg:
+      in
+      {
+        packages = mapAttrs' (
+          name: cfg:
           let
-            fullName = if name == "default" then
-              "${cfg.packageNamePrefix}"
-            else
-              "${cfg.packageNamePrefix}-${name}";
-          in nameValuePair fullName (mkVimPackage name cfg)) config.bundler-vim;
+            fullName =
+              if name == "default" then "${cfg.packageNamePrefix}" else "${cfg.packageNamePrefix}-${name}";
+          in
+          nameValuePair fullName (mkVimPackage name cfg)
+        ) config.bundler-vim;
 
-        apps = mapAttrs' (name: cfg:
+        apps = mapAttrs' (
+          name: cfg:
           let
-            fullName = if name == "default" then
-              "${cfg.appNamePrefix}"
-            else
-              "${cfg.appNamePrefix}-${name}";
-          in nameValuePair fullName {
+            fullName = if name == "default" then "${cfg.appNamePrefix}" else "${cfg.appNamePrefix}-${name}";
+          in
+          nameValuePair fullName {
             type = "app";
             program = "${mkVimPackage name cfg}/bin/vim";
-          }) config.bundler-vim;
+          }
+        ) config.bundler-vim;
       };
   };
 }
