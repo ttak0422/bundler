@@ -61,7 +61,6 @@
             }:
             let
               inherit (import ./nix/bundler.nix { inherit system pkgs crane; }) bundler toolchain;
-              inherit (import ./nix/bundler-vim.nix { inherit pkgs; }) bundler-vim;
               inherit (import ./nix/bundler-nvim.nix { inherit pkgs; }) bundler-nvim;
             in
             {
@@ -74,7 +73,6 @@
               };
               packages = {
                 bundler = bundler.package;
-                bundler-vim = bundler-vim.package;
                 bundler-nvim = bundler-nvim.package;
                 mdbook =
                   let
@@ -140,13 +138,6 @@
             description = "neovim with bundler";
             welcomeText = ''
               Run `nix run .#bundler-nvim`
-            '';
-          };
-          vim = {
-            path = examples/vim;
-            description = "vim with bundler";
-            welcomeText = ''
-              Run `nix run .#bundler-vim`
             '';
           };
         };

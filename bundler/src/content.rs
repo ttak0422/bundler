@@ -1,4 +1,4 @@
-/* Rust friendly vim/neovim config. */
+/* Rust friendly neovim config. */
 
 mod common;
 mod config;
@@ -6,9 +6,7 @@ mod from_target;
 mod id_table;
 
 use crate::content::common::Target;
-pub use crate::content::config::{
-    AfterOption, Content, EagerPlugin, Info, LazyGroup, LazyPlugin, Package,
-};
+pub use crate::content::config::{AfterOption, Content, EagerPlugin, Info, LazyPlugin, Package};
 use crate::content::from_target::FromTarget;
 // TODO: capsule
 pub use crate::content::id_table::IdTable;
@@ -26,15 +24,13 @@ pub fn unpack(payload: payload::Payload) -> Content {
         .config
         .lazy_plugins
         .into_iter()
-        .map(|p| Vec::from_target(p, &target))
-        .flatten()
+        .flat_map(|p| Vec::from_target(p, &target))
         .for_each(|p| packages.push(p));
     payload
         .config
         .lazy_groups
         .into_iter()
-        .map(|p| Vec::from_target(p, &target))
-        .flatten()
+        .flat_map(|p| Vec::from_target(p, &target))
         .for_each(|p| packages.push(p));
     let id_table = IdTable::from(payload.meta.id_map);
     let after_option = AfterOption::from(payload.config.after);

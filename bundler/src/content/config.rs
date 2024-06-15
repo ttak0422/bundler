@@ -91,14 +91,12 @@ fn mk_args_code(args: serde_json::Value, language: &Language) -> String {
 
 fn mk_simple_code(code: String, target: &Target) -> String {
     let language = Language::default();
-    if code == "" {
+    if code.is_empty() {
         String::default()
     } else {
         match (target, language) {
-            (Target::Vim, Language::Vim) => code,
             (Target::Neovim, Language::Vim) => format!("vim.cmd([=[{}]=])", code),
             (Target::Neovim, Language::Lua) => code,
-            _ => panic!("invalid target and language combination"),
         }
     }
 }
@@ -107,10 +105,8 @@ fn mk_detail_code(cfg: payload::DetailConfig, target: &Target) -> String {
     let language = Language::from(cfg.language);
     let args = mk_args_code(cfg.args, &language);
     match (target, language) {
-        (Target::Vim, Language::Vim) => format!("{}\n{}", args, cfg.code),
         (Target::Neovim, Language::Vim) => format!("vim.cmd([=[\n{}\n{}]=])", args, cfg.code),
         (Target::Neovim, Language::Lua) => format!("{}\n{}", args, cfg.code),
-        _ => panic!("invalid target and language combination"),
     }
 }
 
@@ -188,8 +184,7 @@ impl FromTarget<payload::LazyVimPluginPackage> for Vec<Package> {
                 let depend_packages = cfg
                     .depend_plugins
                     .into_iter()
-                    .map(|p| Vec::from_target(p, target))
-                    .flatten()
+                    .flat_map(|p| Vec::from_target(p, target))
                     .collect::<Vec<Package>>();
                 packages.extend(depend_packages);
 
@@ -252,8 +247,7 @@ impl FromTarget<payload::LazyGroup> for Vec<Package> {
         let plugin_packages = value
             .plugins
             .into_iter()
-            .map(|p| Vec::from_target(p, target))
-            .flatten()
+            .flat_map(|p| Vec::from_target(p, target))
             .collect::<Vec<Package>>();
         packages.extend(plugin_packages);
 
@@ -261,8 +255,7 @@ impl FromTarget<payload::LazyGroup> for Vec<Package> {
         let depend_packages = value
             .depend_plugins
             .into_iter()
-            .map(|p| Vec::from_target(p, target))
-            .flatten()
+            .flat_map(|p| Vec::from_target(p, target))
             .collect::<Vec<Package>>();
         packages.extend(depend_packages);
 

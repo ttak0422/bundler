@@ -12,6 +12,5 @@ pub enum Language {
 #[serde(rename_all = "camelCase")]
 pub enum Target {
     #[default]
-    Vim,
     Neovim,
 }

@@ -37,7 +37,7 @@ impl<'a> Mergeable for config::Component<'a> {
     fn modified(&self) -> bool {
         let base = config::Component {
             id: self.id,
-            is_plugin: self.is_plugin.clone(),
+            is_plugin: self.is_plugin,
             // compare other fields
             ..Default::default()
         };

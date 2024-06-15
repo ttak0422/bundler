@@ -8,6 +8,5 @@
 
 - [Neovim Configuration](./neovim-configuration.md)
     - [pluginConfigDetail.args example](./neovim-configuration-example-args.md)
-- [Vim Configuration](./vim-configuration.md)
 
 ---

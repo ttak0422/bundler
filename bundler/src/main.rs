@@ -31,7 +31,7 @@ fn main() {
     // resolve the recursive structure of payload.
     let content = content::unpack(payload);
 
-    // generate files for bundler-vim/bundler-nvim.
+    // generate files for bundler-nvim.
     let bundle = bundle::bundle(&content);
     let export_option = bundle::ExportOption {
         root_dir: output_dir,

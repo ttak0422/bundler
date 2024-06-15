@@ -1,10 +1,10 @@
-/* Nix friendly vim/neovim config. */
+/* Nix friendly neovim config. */
 pub use crate::payload::{
     common::{Language, Target},
-    config::{AfterOption, BundlerConfig, Config, DetailConfig, IdMapElement, Meta, Payload},
-    eager::{PluginConfig as PluginEagerConfig, VimPluginPackage as EagerVimPluginPackage},
+    config::{AfterOption, Config, DetailConfig, IdMapElement, Payload},
+    eager::VimPluginPackage as EagerVimPluginPackage,
     group::LazyGroup,
-    lazy::{PluginConfig as PluginLazyConfig, VimPluginPackage as LazyVimPluginPackage},
+    lazy::VimPluginPackage as LazyVimPluginPackage,
 };
 
 mod common;

@@ -1,9 +1,7 @@
 mod config;
 mod export;
 mod merge;
-pub use crate::bundle::config::{
-    AfterOption, Bundle, Component, Info, LoadOption, PluginId, PluginPath,
-};
+pub use crate::bundle::config::{AfterOption, Bundle, Component, Info, LoadOption};
 pub use crate::bundle::export::{ExportOption, Exporter};
 use crate::bundle::merge::merge_vector;
 use crate::content;
@@ -20,11 +18,10 @@ fn mk_component<'a>(
         content::Package::LazyGroup(g) => &g.name,
     };
 
-    let is_plugin = match package {
-        content::Package::EagerPlugin(_) => true,
-        content::Package::LazyPlugin(_) => true,
-        _ => false,
-    };
+    let is_plugin = matches!(
+        package,
+        content::Package::EagerPlugin(_) | content::Package::LazyPlugin(_)
+    );
 
     let startup_config = match package {
         content::Package::EagerPlugin(p) => p.startup_config.as_str(),
@@ -116,7 +113,7 @@ fn mk_component<'a>(
     }
 }
 
-fn mk_after_option<'a>(option: &'a content::AfterOption) -> AfterOption<'a> {
+fn mk_after_option(option: &content::AfterOption) -> AfterOption {
     let mut ftplugin = HashMap::new();
     for (k, v) in &option.ftplugin {
         ftplugin.insert(k.as_str(), v.as_str());
@@ -124,7 +121,7 @@ fn mk_after_option<'a>(option: &'a content::AfterOption) -> AfterOption<'a> {
     AfterOption { ftplugin }
 }
 
-pub fn bundle<'a>(config: &'a content::Content) -> Bundle<'a> {
+pub fn bundle(config: &content::Content) -> Bundle {
     let mut components = Vec::new();
     let mut load_option = LoadOption::default();
 
