@@ -1,48 +1,49 @@
 use crate::payload;
-use std::fmt;
-
-#[derive(Debug, Eq, PartialEq)]
-pub enum Target {
-    Neovim,
-}
 
 #[derive(Debug, Clone, Default, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Language {
-    #[default]
     Vim,
+    #[default]
     Lua,
 }
 
-impl fmt::Display for Language {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match &self {
-            Language::Vim => write!(f, "vim"),
-            Language::Lua => write!(f, "lua"),
-        }
-    }
-}
-
-impl fmt::Display for Target {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match &self {
-            Target::Neovim => write!(f, "neovim"),
-        }
-    }
-}
-
-impl From<payload::Language> for Language {
-    fn from(language: payload::Language) -> Self {
+impl From<payload::common::Language> for Language {
+    fn from(language: payload::common::Language) -> Self {
         match language {
-            payload::Language::Vim => Self::Vim,
-            payload::Language::Lua => Self::Lua,
+            payload::common::Language::Vim => Self::Vim,
+            payload::common::Language::Lua => Self::Lua,
         }
     }
 }
 
-impl From<payload::Target> for Target {
-    fn from(value: payload::Target) -> Self {
+impl From<payload::common::Config> for String {
+    fn from(value: payload::common::Config) -> Self {
         match value {
-            payload::Target::Neovim => Self::Neovim,
+            payload::common::Config::Simple(code) => code,
+            payload::common::Config::Detail(cfg) => match cfg.language {
+                payload::common::Language::Vim => {
+                    let mut statements = vec![];
+                    let args = serde_json::to_string(&cfg.args).unwrap();
+                    if args != "{}" {
+                        statements.push(format!("let s:args = json_decode('{}')", args));
+                    }
+                    if !cfg.code.is_empty() {
+                        statements.push(cfg.code);
+                    }
+                    format!("vim.cmd([=[\n{}\n]=])", statements.join("\n"))
+                }
+                payload::common::Language::Lua => {
+                    let mut statements = vec![];
+                    let args = serde_json::to_string(&cfg.args).unwrap();
+                    if args != "{}" {
+                        statements.push(format!("local args = vim.json.decode([[{}]])", args));
+                    }
+                    if !cfg.code.is_empty() {
+                        statements.push(cfg.code);
+                    }
+                    statements.join("\n")
+                }
+            },
         }
     }
 }

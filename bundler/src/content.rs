@@ -1,48 +1,50 @@
-/* Rust friendly neovim config. */
+pub mod common;
+pub mod hashable;
+pub mod meta;
+pub mod plugin;
+pub mod vim;
 
-mod common;
-mod config;
-mod from_target;
-mod id_table;
-
-use crate::content::common::Target;
-pub use crate::content::config::{AfterOption, Content, EagerPlugin, Info, LazyPlugin, Package};
-use crate::content::from_target::FromTarget;
-// TODO: capsule
-pub use crate::content::id_table::IdTable;
+use crate::content::hashable::Hashable;
+use crate::content::plugin::PluginConfig;
 use crate::payload;
 
-pub fn unpack(payload: payload::Payload) -> Content {
-    let target = Target::from(payload.meta.target);
-    let mut packages = payload
-        .config
-        .eager_plugins
-        .into_iter()
-        .map(|p| Package::EagerPlugin(EagerPlugin::from_target(p, &target)))
-        .collect::<Vec<Package>>();
-    payload
-        .config
-        .lazy_plugins
-        .into_iter()
-        .flat_map(|p| Vec::from_target(p, &target))
-        .for_each(|p| packages.push(p));
-    payload
-        .config
-        .lazy_groups
-        .into_iter()
-        .flat_map(|p| Vec::from_target(p, &target))
-        .for_each(|p| packages.push(p));
-    let id_table = IdTable::from(payload.meta.id_map);
-    let after_option = AfterOption::from(payload.config.after);
+#[derive(Debug, Default, Clone, PartialEq, Eq)]
+pub struct Content {
+    pub plugin_configs: Vec<PluginConfig>,
+    pub vim: vim::Vim,
+    pub meta: meta::Meta,
+}
 
-    let info = Info {
-        bundler_bin: payload.meta.bundler_bin,
-    };
+impl From<payload::Payload> for Content {
+    // plugin configs
+    fn from(value: payload::Payload) -> Self {
+        let mut eager_plugin_configs: Vec<PluginConfig> = value
+            .plugin_config
+            .eager
+            .into_values()
+            .map(PluginConfig::from)
+            .collect::<Vec<_>>();
+        let mut lazy_plugin_configs: Vec<PluginConfig> = value
+            .plugin_config
+            .lazy
+            .into_values()
+            .flat_map(Vec::<PluginConfig>::from)
+            .collect::<Vec<_>>();
+        let mut plugin_configs = vec![];
+        plugin_configs.append(&mut eager_plugin_configs);
+        plugin_configs.append(&mut lazy_plugin_configs);
+        plugin_configs.dedup();
 
-    Content {
-        packages,
-        id_table,
-        after_option,
-        info,
+        // vim configs
+        let vim = vim::Vim::from(value.vim_config);
+
+        // other configs
+        let meta = meta::Meta::from(value.meta);
+
+        Content {
+            plugin_configs,
+            vim,
+            meta,
+        }
     }
 }

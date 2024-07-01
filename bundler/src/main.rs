@@ -1,12 +1,11 @@
 #[cfg_attr(test, macro_use)]
 extern crate derive_builder;
 
-mod bundle;
-mod constant;
-mod content;
-mod payload;
-mod util;
+pub mod bundle;
+pub mod content;
+pub mod payload;
 
+use crate::content::Content;
 use crate::payload::Payload;
 use std::{env, fs};
 
@@ -17,7 +16,7 @@ fn main() {
     let args: Vec<String> = env::args().collect();
     let input_json_path = &args[1];
     let output_dir = &args[2];
-    log::debug!(
+    log::info!(
         "input json: {}, output dir: {}",
         input_json_path,
         output_dir
@@ -28,15 +27,9 @@ fn main() {
     // convert JSON generated in Nix to Rust struct.
     let payload = serde_json::from_str::<Payload>(input_json_text.as_str()).unwrap();
 
-    // resolve the recursive structure of payload.
-    let content = content::unpack(payload);
+    // convert payload into manageable struct.
+    let content = Content::from(payload);
 
-    // generate files for bundler-nvim.
-    let bundle = bundle::bundle(&content);
-    let export_option = bundle::ExportOption {
-        root_dir: output_dir,
-    };
-    bundle::export(bundle, export_option).unwrap();
-
-    log::info!("bundle completed");
+    // export config files.
+    bundle::bundle(output_dir, content).unwrap();
 }

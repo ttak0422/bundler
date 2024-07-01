@@ -1,44 +1,34 @@
 use std::collections::HashMap;
 
-#[derive(Default, Debug, PartialEq, Eq)]
-pub struct Component<'a> {
-    pub id: &'a str,
-    pub is_plugin: bool,
-    pub startup_config: &'a str,
-    pub pre_config: &'a str,
-    pub post_config: &'a str,
-    pub depend_plugins: Vec<&'a str>,
-    pub depend_groups: Vec<&'a str>,
-    pub group_plugins: Vec<&'a str>,
+#[derive(Debug, Default, Clone, PartialEq, Eq)]
+pub struct PluginConfig {
+    /// incremental id (e.g. 1, 2, 3, ...).
+    pub id: i32,
+    /// pname.
+    pub packages: Vec<String>,
+    pub startup_config: Option<String>,
+    pub pre_config: Option<String>,
+    pub post_config: Option<String>,
+    pub depends: Vec<i32>,
 }
 
-#[derive(Default)]
-pub struct LoadOption<'a> {
-    pub plugin_paths: HashMap<PluginId<'a>, PluginPath<'a>>,
-    pub startup_config_plugins: Vec<&'a str>,
-    pub on_modules: HashMap<&'a str, Vec<&'a str>>,
-    pub on_events: HashMap<&'a str, Vec<&'a str>>,
-    pub on_filetypes: HashMap<&'a str, Vec<&'a str>>,
-    pub on_commands: HashMap<&'a str, Vec<&'a str>>,
-    pub timer_clients: Vec<&'a str>,
-    pub denops_clients: Vec<&'a str>,
+#[derive(Debug, Default, Clone, PartialEq, Eq)]
+pub struct LoadConfig {
+    pub on_modules: HashMap<String, Vec<i32>>,
+    pub on_events: HashMap<String, Vec<i32>>,
+    pub on_userevents: HashMap<String, Vec<i32>>,
+    pub on_filetypes: HashMap<String, Vec<i32>>,
+    pub on_commands: HashMap<String, Vec<i32>>,
+    pub startup_plugins: Vec<i32>,
+    pub startup_config_plugins: Vec<i32>,
+    pub denops_clients: Vec<i32>,
+    // [(id, [path])]
+    pub rtp: HashMap<i32, Vec<String>>,
 }
 
-pub struct AfterOption<'a> {
-    pub ftplugin: HashMap<&'a str, &'a str>,
-}
-
-pub struct Info<'a> {
-    pub bundler_bin: &'a str,
-}
-
-pub type PluginId<'a> = &'a str;
-
-pub type PluginPath<'a> = &'a str;
-
-pub struct Bundle<'a> {
-    pub components: Vec<Component<'a>>,
-    pub load_option: LoadOption<'a>,
-    pub after_option: AfterOption<'a>,
-    pub info: Info<'a>,
+#[derive(Debug, Default, Clone, PartialEq, Eq)]
+pub struct Config {
+    pub plugins: Vec<PluginConfig>,
+    pub load_config: LoadConfig,
+    pub after: HashMap<String, HashMap<String, String>>,
 }

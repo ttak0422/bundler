@@ -1,276 +1,120 @@
-mod config;
-mod export;
-mod merge;
-pub use crate::bundle::config::{AfterOption, Bundle, Component, Info, LoadOption};
-pub use crate::bundle::export::{ExportOption, Exporter};
-use crate::bundle::merge::merge_vector;
-use crate::content;
-use anyhow::Result;
+pub mod config;
+pub mod constant;
+pub mod export;
+pub mod incremental_id_generator;
+pub mod lua;
+
 use std::collections::HashMap;
 
-fn mk_component<'a>(
-    id_table: &'a content::IdTable,
-    package: &'a content::Package,
-) -> Component<'a> {
-    let id = match package {
-        content::Package::EagerPlugin(p) => id_table.get(p),
-        content::Package::LazyPlugin(p) => id_table.get(p),
-        content::Package::LazyGroup(g) => &g.name,
-    };
+use crate::content;
+use anyhow::Result;
+use config::{Config, LoadConfig, PluginConfig};
+use incremental_id_generator::IncrementalIdGenerator;
 
-    let is_plugin = matches!(
-        package,
-        content::Package::EagerPlugin(_) | content::Package::LazyPlugin(_)
-    );
+pub fn bundle(root: &str, content: content::Content) -> Result<()> {
+    // [(path, pname)]
+    let package_names = content.meta.package_names;
+    // [(id, [path])]
+    let mut rtp = HashMap::<i32, Vec<String>>::new();
+    let id_generator = IncrementalIdGenerator::<String>::new();
+    let mut plugins: Vec<PluginConfig> = vec![];
+    let mut load_config = LoadConfig::default();
 
-    let startup_config = match package {
-        content::Package::EagerPlugin(p) => p.startup_config.as_str(),
-        content::Package::LazyPlugin(p) => p.startup_config.as_str(),
-        content::Package::LazyGroup(g) => g.startup_config.as_str(),
-    };
-    let pre_config = match package {
-        content::Package::EagerPlugin(_) => "",
-        content::Package::LazyPlugin(p) => p.pre_config.as_str(),
-        content::Package::LazyGroup(g) => g.pre_config.as_str(),
-    };
-    let post_config = match package {
-        content::Package::EagerPlugin(_) => "",
-        content::Package::LazyPlugin(p) => p.post_config.as_str(),
-        content::Package::LazyGroup(g) => g.post_config.as_str(),
-    };
-
-    let depend_plugins = match package {
-        content::Package::EagerPlugin(_) => vec![],
-        content::Package::LazyPlugin(p) => {
-            let mut ps = p
-                .depend_plugin_packages
-                .iter()
-                .map(|package| id_table.get(package))
-                .collect::<Vec<&str>>();
-            ps.sort();
-            ps.dedup();
-            ps
+    for p in content.plugin_configs {
+        let id = id_generator.get_id(p.id);
+        let mut rtp_paths = Vec::<String>::new();
+        for path in p.packages.iter() {
+            rtp_paths.push(path.clone());
         }
-        content::Package::LazyGroup(g) => {
-            let mut ps = g
-                .depend_plugin_packages
-                .iter()
-                .map(|package| id_table.get(package))
-                .collect::<Vec<&str>>();
-            ps.sort();
-            ps.dedup();
-            ps
+        rtp.insert(id, rtp_paths);
+        let packages = p
+            .packages
+            .into_iter()
+            .map(|p| package_names.get(&p).unwrap().to_string())
+            .collect::<Vec<_>>();
+        let depends = p
+            .depends
+            .into_iter()
+            .map(|p| id_generator.get_id(p))
+            .collect::<Vec<_>>();
+        let startup_config = if p.startup_config.is_empty() {
+            None
+        } else {
+            Some(p.startup_config)
+        };
+        if startup_config.is_some() {
+            load_config.startup_config_plugins.push(id);
         }
-    };
-    let depend_groups = match package {
-        content::Package::EagerPlugin(_) => vec![],
-        content::Package::LazyPlugin(p) => {
-            let mut ps = p
-                .depend_groups
-                .iter()
-                .map(|p| p.as_str())
-                .collect::<Vec<&str>>();
-            ps.sort();
-            ps.dedup();
-            ps
+        let pre_config = if p.pre_config.is_empty() {
+            None
+        } else {
+            Some(p.pre_config)
+        };
+        let post_config = if p.post_config.is_empty() {
+            None
+        } else {
+            Some(p.post_config)
+        };
+
+        plugins.push(PluginConfig {
+            id,
+            packages,
+            depends,
+            startup_config,
+            pre_config,
+            post_config,
+        });
+
+        for m in p.on_modules {
+            load_config
+                .on_modules
+                .entry(m)
+                .or_insert_with(Vec::new)
+                .push(id);
         }
-        content::Package::LazyGroup(g) => {
-            let mut ps = g
-                .depend_groups
-                .iter()
-                .map(|p| p.as_str())
-                .collect::<Vec<&str>>();
-            ps.sort();
-            ps.dedup();
-            ps
+        for ev in p.on_events {
+            load_config
+                .on_events
+                .entry(ev)
+                .or_insert_with(Vec::new)
+                .push(id);
         }
-    };
-
-    let group_plugins = match package {
-        content::Package::EagerPlugin(_) => vec![],
-        content::Package::LazyPlugin(_) => vec![],
-        content::Package::LazyGroup(g) => {
-            let mut ps = g
-                .plugins
-                .iter()
-                .map(|package| id_table.get(package))
-                .collect::<Vec<&str>>();
-            ps.sort();
-            ps.dedup();
-            ps
+        for ev in p.on_userevents {
+            load_config
+                .on_userevents
+                .entry(ev)
+                .or_insert_with(Vec::new)
+                .push(id);
         }
-    };
+        for cmd in p.on_commands {
+            load_config
+                .on_commands
+                .entry(cmd)
+                .or_insert_with(Vec::new)
+                .push(id);
+        }
+        if !p.is_opt {
+            load_config.startup_plugins.push(id);
+        }
+        if p.is_denops_client {
+            load_config.denops_clients.push(id);
+        }
 
-    Component {
-        id,
-        is_plugin,
-        startup_config,
-        pre_config,
-        post_config,
-        depend_plugins,
-        depend_groups,
-        group_plugins,
-    }
-}
-
-fn mk_after_option(option: &content::AfterOption) -> AfterOption {
-    let mut ftplugin = HashMap::new();
-    for (k, v) in &option.ftplugin {
-        ftplugin.insert(k.as_str(), v.as_str());
-    }
-    AfterOption { ftplugin }
-}
-
-pub fn bundle(config: &content::Content) -> Bundle {
-    let mut components = Vec::new();
-    let mut load_option = LoadOption::default();
-
-    for package in &config.packages {
-        components.push(mk_component(&config.id_table, package));
-        match package {
-            content::Package::EagerPlugin(p) => {
-                let id = config.id_table.get(p);
-                load_option.plugin_paths.insert(id, p.nix_package.as_str());
-                if !p.startup_config.is_empty() {
-                    load_option.startup_config_plugins.push(id);
-                }
-            }
-            content::Package::LazyPlugin(p) => {
-                let id = config.id_table.get(p);
-
-                load_option.plugin_paths.insert(id, p.nix_package.as_str());
-
-                if !p.startup_config.is_empty() {
-                    load_option.startup_config_plugins.push(id);
-                }
-
-                for module in &p.on_modules {
-                    load_option
-                        .on_modules
-                        .entry(module.as_str())
-                        .or_default()
-                        .push(id);
-                }
-                for event in &p.on_events {
-                    load_option
-                        .on_events
-                        .entry(event.as_str())
-                        .or_default()
-                        .push(id);
-                }
-                for filetype in &p.on_filetypes {
-                    load_option
-                        .on_filetypes
-                        .entry(filetype.as_str())
-                        .or_default()
-                        .push(id);
-                }
-                for command in &p.on_commands {
-                    load_option
-                        .on_commands
-                        .entry(command.as_str())
-                        .or_default()
-                        .push(id);
-                }
-
-                if p.is_timer_client {
-                    load_option.timer_clients.push(id);
-                }
-                if p.is_denops_client {
-                    load_option.denops_clients.push(id);
-                }
-            }
-            content::Package::LazyGroup(g) => {
-                let id = g.name.as_str();
-
-                if !g.startup_config.is_empty() {
-                    load_option.startup_config_plugins.push(id);
-                }
-
-                for module in &g.on_modules {
-                    load_option
-                        .on_modules
-                        .entry(module.as_str())
-                        .or_default()
-                        .push(id);
-                }
-                for event in &g.on_events {
-                    load_option
-                        .on_events
-                        .entry(event.as_str())
-                        .or_default()
-                        .push(id);
-                }
-                for filetype in &g.on_filetypes {
-                    load_option
-                        .on_filetypes
-                        .entry(filetype.as_str())
-                        .or_default()
-                        .push(id);
-                }
-                for command in &g.on_commands {
-                    load_option
-                        .on_commands
-                        .entry(command.as_str())
-                        .or_default()
-                        .push(id);
-                }
-                if g.is_timer_client {
-                    load_option.timer_clients.push(id);
-                }
-            }
+        for ft in p.on_filetypes {
+            load_config
+                .on_filetypes
+                .entry(ft)
+                .or_insert_with(Vec::new)
+                .push(id);
         }
     }
 
-    for plugins in load_option.on_modules.values_mut() {
-        plugins.sort();
-        plugins.dedup();
-    }
-    for plugins in load_option.on_events.values_mut() {
-        plugins.sort();
-        plugins.dedup();
-    }
-    for plugins in load_option.on_filetypes.values_mut() {
-        plugins.sort();
-        plugins.dedup();
-    }
-    for plugins in load_option.on_commands.values_mut() {
-        plugins.sort();
-        plugins.dedup();
-    }
-    load_option.startup_config_plugins.sort();
-    load_option.startup_config_plugins.dedup();
-    load_option.timer_clients.sort();
-    load_option.timer_clients.dedup();
-    load_option.denops_clients.sort();
-    load_option.denops_clients.dedup();
-
-    let components = merge_vector(components).unwrap();
-
-    Bundle {
-        components,
-        load_option,
-        after_option: mk_after_option(&config.after_option),
-        info: Info {
-            bundler_bin: config.info.bundler_bin.as_str(),
+    export::export(
+        root,
+        Config {
+            plugins,
+            load_config,
+            after: content.vim.after,
         },
-    }
-}
-
-pub fn export<'a>(bundle: Bundle<'a>, export_option: ExportOption<'a>) -> Result<()> {
-    // components
-    for component in bundle.components {
-        component.export_file(&export_option)?;
-    }
-
-    // load options
-    bundle.load_option.export_file(&export_option)?;
-
-    // after options
-    bundle.after_option.export_file(&export_option)?;
-
-    // info
-    bundle.info.export_file(&export_option)?;
-
-    Ok(())
+    )
 }

@@ -1,208 +1,186 @@
-use crate::bundle::{AfterOption, Component, Info, LoadOption};
-use crate::constant::dir::{AFTER, FTPLUGIN, INFO, MODULES};
-use crate::constant::file::{
-    BUNDLER_BIN, COMMAND_KEYS, DENOPS_CLIENTS, EVENT_KEYS, FILETYPE_KEYS, MODULE_KEYS,
-    STARTUP_KEYS, TIMER_CLIENTS,
-};
-use crate::constant::{self, dir};
-use crate::util::file::create_file_with_dirs;
-use crate::util::lua::{to_lua_flag_table, to_lua_table};
+use super::config::Config;
+use super::lua::LuaPortable;
+use super::LoadConfig;
+use super::PluginConfig;
+use crate::bundle::constant;
+use anyhow::Context;
 use anyhow::Result;
+use std::collections::HashMap;
 use std::io::Write;
+use std::{
+    fs::{self, File, OpenOptions},
+    path::Path,
+};
 
-pub struct ExportOption<'a> {
-    pub root_dir: &'a str,
-}
-
-pub trait Exporter {
-    fn export_file(self, opt: &ExportOption) -> Result<()>;
-}
-
-impl<'a> Exporter for Component<'a> {
-    fn export_file(self, export_option: &ExportOption) -> Result<()> {
-        // plugin
-        let mut plugin_file = create_file_with_dirs(
-            String::from(export_option.root_dir) + "/" + dir::PLUGIN + "/" + self.id,
-        )?;
-        if self.is_plugin {
-            write!(plugin_file, "return \"{}\"", self.id)?;
-        } else {
-            write!(plugin_file, "return nil")?;
-        }
-
-        // plugins
-        let mut plugins_file = create_file_with_dirs(
-            String::from(export_option.root_dir) + "/" + dir::PLUGINS + "/" + self.id,
-        )?;
-        write!(plugins_file, "return {}", to_lua_table(&self.group_plugins))?;
-
-        // startup
-        let mut startup_file = create_file_with_dirs(
-            String::from(export_option.root_dir) + "/" + dir::STARTUP + "/" + self.id,
-        )?;
-        write!(startup_file, "{}", self.startup_config)?;
-
-        // pre_config
-        let mut pre_config_file = create_file_with_dirs(
-            String::from(export_option.root_dir) + "/" + dir::PRE_CONFIG + "/" + self.id,
-        )?;
-        write!(pre_config_file, "{}", self.pre_config)?;
-
-        // post_config
-        let mut post_config_file = create_file_with_dirs(
-            String::from(export_option.root_dir) + "/" + dir::POST_CONFIG + "/" + self.id,
-        )?;
-        write!(post_config_file, "{}", self.post_config)?;
-
-        // depend plugins
-        let mut depend_plugins_file = create_file_with_dirs(
-            String::from(export_option.root_dir) + "/" + dir::DEPEND_PLUGINS + "/" + self.id,
-        )?;
-        write!(
-            depend_plugins_file,
-            "return {}",
-            to_lua_table(&self.depend_plugins)
-        )?;
-
-        // depend groups
-        let mut depend_groups_file = create_file_with_dirs(
-            String::from(export_option.root_dir) + "/" + dir::DEPEND_GROUPS + "/" + self.id,
-        )?;
-        write!(
-            depend_groups_file,
-            "return {}",
-            to_lua_table(&self.depend_groups)
-        )?;
-
-        Ok(())
+fn create_or_open_file(path: impl AsRef<Path>) -> Result<File> {
+    if let Some(parent_dir) = path.as_ref().parent() {
+        fs::create_dir_all(parent_dir)?;
     }
+    OpenOptions::new()
+        .create(true)
+        .truncate(false)
+        .write(true)
+        .read(true)
+        .open(&path)
+        .context("failed to create or open file")
 }
 
-impl<'a> Exporter for LoadOption<'a> {
-    fn export_file(self, export_option: &ExportOption) -> Result<()> {
-        // plugin paths
-        for (plugin_id, path) in self.plugin_paths {
-            let mut plugin_path_file = create_file_with_dirs(
-                String::from(export_option.root_dir) + "/" + constant::dir::RTP + "/" + plugin_id,
-            )?;
-            write!(plugin_path_file, "return \"{}\"", path)?;
-        }
+fn export_plugin_config(root: &str, cfg: PluginConfig) -> Result<()> {
+    let id = cfg.id.to_string();
 
-        // startup plugins
-        let mut startup_plugins_file =
-            create_file_with_dirs(String::from(export_option.root_dir) + "/" + STARTUP_KEYS)?;
-        write!(
-            startup_plugins_file,
-            "return {}",
-            to_lua_table(&self.startup_config_plugins)
-        )?;
+    let packages_path = [root, constant::dir::PACKAGES, &id].join("/");
+    let mut packages_file = create_or_open_file(packages_path)?;
+    write!(packages_file, "return {}", cfg.packages.into_lua())?;
 
-        // modules
-        let mut modules_file =
-            create_file_with_dirs(String::from(export_option.root_dir) + "/" + MODULE_KEYS)?;
-        let modules = self.on_modules.keys().cloned().collect::<Vec<_>>();
-        write!(modules_file, "return {}", to_lua_table(&modules))?;
-        for (module, plugins) in self.on_modules {
-            let mut file = create_file_with_dirs(
-                String::from(export_option.root_dir) + "/" + MODULES + "/" + module,
-            )?;
-            write!(file, "return {}", to_lua_table(&plugins))?;
-        }
-
-        // events
-        let mut events_file =
-            create_file_with_dirs(String::from(export_option.root_dir) + "/" + EVENT_KEYS)?;
-        let events = self.on_events.keys().cloned().collect::<Vec<_>>();
-        write!(events_file, "return {}", to_lua_table(&events))?;
-        for (event, plugins) in self.on_events {
-            let mut file = create_file_with_dirs(
-                String::from(export_option.root_dir) + "/" + constant::dir::EVENTS + "/" + event,
-            )?;
-            write!(file, "return {}", to_lua_table(&plugins))?;
-        }
-
-        // filetypes
-        let mut filetypes_file =
-            create_file_with_dirs(String::from(export_option.root_dir) + "/" + FILETYPE_KEYS)?;
-        let filetypes = self.on_filetypes.keys().cloned().collect::<Vec<_>>();
-        write!(filetypes_file, "return {}", to_lua_table(&filetypes))?;
-        for (filetype, plugins) in self.on_filetypes {
-            let mut file = create_file_with_dirs(
-                String::from(export_option.root_dir)
-                    + "/"
-                    + constant::dir::FILETYPES
-                    + "/"
-                    + filetype,
-            )?;
-            write!(file, "return {}", to_lua_table(&plugins))?;
-        }
-
-        // commands
-        let mut commands_file =
-            create_file_with_dirs(String::from(export_option.root_dir) + "/" + COMMAND_KEYS)?;
-        let commands = self.on_commands.keys().cloned().collect::<Vec<_>>();
-        write!(commands_file, "return {}", to_lua_table(&commands))?;
-        for (command, plugins) in self.on_commands {
-            let mut file = create_file_with_dirs(
-                String::from(export_option.root_dir)
-                    + "/"
-                    + constant::dir::COMMANDS
-                    + "/"
-                    + command,
-            )?;
-            write!(file, "return {}", to_lua_table(&plugins))?;
-        }
-
-        // timer clients
-        let mut timer_clients_file =
-            create_file_with_dirs(String::from(export_option.root_dir) + "/" + TIMER_CLIENTS)?;
-        write!(
-            timer_clients_file,
-            "return {}",
-            to_lua_table(&self.timer_clients)
-        )?;
-
-        // denops clients
-        let mut denops_clients_file =
-            create_file_with_dirs(String::from(export_option.root_dir) + "/" + DENOPS_CLIENTS)?;
-        write!(
-            denops_clients_file,
-            "return {}",
-            to_lua_flag_table(&self.denops_clients, true)
-        )?;
-
-        Ok(())
+    let startup_config_path = [root, constant::dir::STARTUP_CONFIGS, &id].join("/");
+    let mut startup_config_file = create_or_open_file(startup_config_path)?;
+    if let Some(startup_config) = cfg.startup_config {
+        write!(startup_config_file, "{}", startup_config)?;
     }
+
+    let pre_config_path = [root, constant::dir::PRE_CONFIGS, &id].join("/");
+    let mut pre_config_file = create_or_open_file(pre_config_path)?;
+    if let Some(pre_config) = cfg.pre_config {
+        write!(pre_config_file, "{}", pre_config)?;
+    } else {
+        write!(pre_config_file, "")?;
+    }
+
+    let post_config_path = [root, constant::dir::POST_CONFIGS, &id].join("/");
+    let mut post_config_file = create_or_open_file(post_config_path)?;
+    if let Some(post_config) = cfg.post_config {
+        write!(post_config_file, "{}", post_config)?;
+    } else {
+        write!(post_config_file, "")?;
+    }
+
+    let depends_path = [root, constant::dir::DEPENDS, &id].join("/");
+    let mut depends_file = create_or_open_file(depends_path)?;
+    write!(depends_file, "return {}", cfg.depends.into_lua())?;
+
+    Ok(())
 }
 
-impl<'a> Exporter for AfterOption<'a> {
-    fn export_file(self, export_option: &ExportOption) -> Result<()> {
-        // filetypes
-        for (filetype, code) in self.ftplugin {
-            let mut file = create_file_with_dirs(
-                String::from(export_option.root_dir)
-                    + "/"
-                    + AFTER
-                    + "/"
-                    + FTPLUGIN
-                    + "/"
-                    + filetype
-                    + ".vim",
-            )?;
-            write!(file, "{}", code)?;
-        }
-
-        Ok(())
+fn export_load_config(root: &str, cfg: LoadConfig) -> Result<()> {
+    // modules
+    let module_keys = cfg.on_modules.keys().collect::<Vec<_>>();
+    let module_keys_path = [root, constant::file::MODULE_KEYS].join("/");
+    let mut module_keys_file = create_or_open_file(module_keys_path)?;
+    write!(module_keys_file, "return {}", module_keys.into_lua())?;
+    for (m, ps) in cfg.on_modules {
+        let module_path = [root, constant::dir::MODULES, m.as_ref()].join("/");
+        let mut module_file = create_or_open_file(module_path)?;
+        write!(module_file, "return {}", ps.into_lua())?;
     }
+
+    // events
+    let event_keys = cfg.on_events.keys().collect::<Vec<_>>();
+    let event_keys_path = [root, constant::file::EVENT_KEYS].join("/");
+    let mut event_keys_file = create_or_open_file(event_keys_path)?;
+    write!(event_keys_file, "return {}", event_keys.into_lua())?;
+    for (ev, ps) in cfg.on_events {
+        let event_path = [root, constant::dir::EVENTS, ev.as_ref()].join("/");
+        let mut event_file = create_or_open_file(event_path)?;
+        write!(event_file, "return {}", ps.into_lua())?;
+    }
+
+    // user events
+    let user_event_keys = cfg.on_userevents.keys().collect::<Vec<_>>();
+    let user_event_keys_path = [root, constant::file::USER_EVENT_KEYS].join("/");
+    let mut user_event_keys_file = create_or_open_file(user_event_keys_path)?;
+    write!(
+        user_event_keys_file,
+        "return {}",
+        user_event_keys.into_lua()
+    )?;
+    for (ev, ps) in cfg.on_userevents {
+        let user_event_path = [root, constant::dir::USER_EVENTS, ev.as_ref()].join("/");
+        let mut user_event_file = create_or_open_file(user_event_path)?;
+        write!(user_event_file, "return {}", ps.into_lua())?;
+    }
+
+    // commands
+    let command_keys = cfg.on_commands.keys().collect::<Vec<_>>();
+    let command_keys_path = [root, constant::file::COMMAND_KEYS].join("/");
+    let mut command_keys_file = create_or_open_file(command_keys_path)?;
+    write!(command_keys_file, "return {}", command_keys.into_lua())?;
+    for (cmd, ps) in cfg.on_commands {
+        let command_path = [root, constant::dir::COMMANDS, cmd.as_ref()].join("/");
+        let mut command_file = create_or_open_file(command_path)?;
+        write!(command_file, "return {}", ps.into_lua())?;
+    }
+
+    // filetypes
+    for (ft, ps) in cfg.on_filetypes {
+        let ft_plugin_path = [
+            root,
+            constant::dir::AFTER,
+            constant::dir::FTPLUGIN,
+            (ft.clone() + ".lua").as_ref(),
+        ]
+        .join("/");
+        let mut ft_plugin_file = create_or_open_file(ft_plugin_path)?;
+        write!(
+            ft_plugin_file,
+            "
+            if not vim.g.bundler_ft_plugins_{} then
+                vim.g.bundler_ft_plugins_{} = true
+                require('bundler').load_plugins({})
+            end
+            ",
+            &ft,
+            &ft,
+            ps.into_lua()
+        )?;
+    }
+
+    // startup
+    let startup_config_keys = cfg.startup_config_plugins.into_lua();
+    let startup_config_keys_path = [root, constant::file::STARTUP_CONFIG_KEYS].join("/");
+    let mut startup_config_keys_file = create_or_open_file(startup_config_keys_path)?;
+    write!(startup_config_keys_file, "return {}", startup_config_keys)?;
+
+    // denops
+    let denops_keys = cfg.denops_clients.into_lua();
+    let denops_keys_path = [root, constant::file::DENOPS_KEYS].join("/");
+    let mut denops_keys_file = create_or_open_file(denops_keys_path)?;
+    write!(denops_keys_file, "return {}", denops_keys)?;
+
+    // rtp
+    for (id, paths) in cfg.rtp {
+        let rtp_path = [root, constant::dir::RTP, id.to_string().as_ref()].join("/");
+        let mut rtp_file = create_or_open_file(rtp_path)?;
+        write!(rtp_file, "return {}", paths.into_lua())?;
+    }
+
+    Ok(())
 }
 
-impl<'a> Exporter for Info<'a> {
-    fn export_file(self, opt: &ExportOption) -> Result<()> {
-        // bundler bin
-        let mut bundler_bin_file =
-            create_file_with_dirs(String::from(opt.root_dir) + "/" + INFO + "/" + BUNDLER_BIN)?;
-        write!(bundler_bin_file, "return \"{}\"", self.bundler_bin)?;
-
-        Ok(())
+fn export_after_config(root: &str, after: HashMap<String, HashMap<String, String>>) -> Result<()> {
+    // x: (e.g. ftplugin, ftdetect, plugin, ...)
+    for (x, kvp) in after {
+        for (key, value) in kvp {
+            // key: (e.g. rust, someplugin, ...)
+            // value: lua config
+            let path = [
+                root,
+                constant::dir::AFTER,
+                x.as_ref(),
+                (key + ".lua").as_ref(),
+            ]
+            .join("/");
+            let mut file = create_or_open_file(path)?;
+            write!(file, "{}", value)?;
+        }
     }
+    Ok(())
+}
+
+pub fn export(root: &str, cfg: Config) -> Result<()> {
+    for p in cfg.plugins {
+        export_plugin_config(root, p)?;
+    }
+    export_load_config(root, cfg.load_config)?;
+    export_after_config(root, cfg.after)?;
+    Ok(())
 }

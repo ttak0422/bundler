@@ -16,3 +16,5 @@ serde_json = "1.0.107"
 
 [dev-dependencies]
 rstest = "0.21.0"
+maplit = "1.0.2"
+big_s = "1.0.2"
