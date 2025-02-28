@@ -155,6 +155,12 @@
 				end
 			end
 		end
+		local mod = package.loaded[mod_name]
+		if mod then
+			return function()
+				return mod
+			end
+		end
 	end)
 
 	log.debug("COMPLETED")
