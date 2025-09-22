@@ -13,17 +13,13 @@
       inputs = {
         flake-compat.follows = "flake-compat";
         nixpkgs.follows = "nixpkgs";
-        nixpkgs-stable.follows = "nixpkgs";
       };
     };
     fenix = {
       url = "github:nix-community/fenix";
       inputs.nixpkgs.follows = "nixpkgs";
     };
-    crane = {
-      url = "github:ipetkov/crane";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
+    crane.url = "github:ipetkov/crane";
     nix-filter.url = "github:numtide/nix-filter";
   };
 
@@ -68,13 +64,7 @@
               bundler = with craneLib; rec {
                 commonArgs = {
                   src = cleanCargoSource (path ./bundler);
-                  buildInputs = optionals isDarwin (
-                    with pkgs;
-                    [
-                      libiconv
-                      darwin.apple_sdk.frameworks.Security
-                    ]
-                  );
+                  buildInputs = optionals isDarwin (with pkgs; [ libiconv ]);
                   nativeBuildgInputs = [ ];
                 };
                 artifacts = buildDepsOnly (commonArgs // { pname = "bundler-deps"; });
@@ -116,10 +106,7 @@
                   hooks = {
                     deadnix.enable = true;
                     stylua.enable = true;
-                    nixfmt = {
-                      enable = true;
-                      package = pkgs.nixfmt-rfc-style;
-                    };
+                    nixfmt-rfc-style.enable = true;
                     statix.enable = true;
                     rustfmt = {
                       enable = true;
@@ -133,14 +120,15 @@
               };
               devShells.default = pkgs.mkShell {
                 inherit (self'.checks.pre-commit-check) shellHook;
-                packages =
-                  [ toolchain ]
-                  ++ (with pkgs; [
-                    mdbook
-                    rust-analyzer-nightly
-                    nixfmt-rfc-style
-                  ])
-                  ++ (with pkgs; lib.optional stdenv.isDarwin libiconv);
+                packages = [
+                  toolchain
+                ]
+                ++ (with pkgs; [
+                  mdbook
+                  rust-analyzer-nightly
+                  nixfmt-rfc-style
+                ])
+                ++ (with pkgs; lib.optional stdenv.isDarwin libiconv);
                 inputsFrom = [ bundler ];
                 RUST_BACKTRACE = "full";
               };
