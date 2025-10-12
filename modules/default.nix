@@ -150,6 +150,11 @@
           description = "neovim package";
           default = pkgs.neovim-unwrapped;
         };
+        extraPython3Packages = mkOption {
+          type = anything;
+          description = "extra python3 packages";
+          default = [ ];
+        };
         extraConfig = mkOption {
           type = config;
           description = "extra configuration to add to top of init file";
@@ -363,9 +368,13 @@
             end)();
             local R="${configRoot}"
             vim.opt.runtimepath:append(R .. "/after");
-            ${replaceStrings [ "REPLACED_BY_NIX" ] [
-              "{root=R,log_level=${logLevel}}"
-            ] (readFile ./runtime.lua)}
+            ${replaceStrings
+              [ "REPLACED_BY_NIX" ]
+              [
+                "{root=R,log_level=${logLevel}}"
+              ]
+              (readFile ./runtime.lua)
+            }
           '';
           entrypoint =
             let
@@ -396,7 +405,12 @@
             };
 
           neovimConfig = pkgs.neovimUtils.makeNeovimConfig {
-            inherit (cfg) withRuby withPython3 withNodeJs;
+            inherit (cfg)
+              withRuby
+              withPython3
+              withNodeJs
+              extraPython3Packages
+              ;
             plugins = eagerPluginPackages ++ lazyPluginPackages;
             wrapRc = true;
           };
