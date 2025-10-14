@@ -155,6 +155,11 @@
           description = "extra python3 packages";
           default = [ ];
         };
+        extraLuaPackages = mkOption {
+          type = anything;
+          description = "extra lua packages";
+          default = [ ];
+        };
         extraConfig = mkOption {
           type = config;
           description = "extra configuration to add to top of init file";
@@ -410,6 +415,7 @@
               withPython3
               withNodeJs
               extraPython3Packages
+              extraLuaPackages
               ;
             plugins = eagerPluginPackages ++ lazyPluginPackages;
             wrapRc = true;
