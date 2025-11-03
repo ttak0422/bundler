@@ -1,3 +1,6 @@
+> [!NOTE] 
+> → bundler will be archived. (next → [divine](https://github.com/ttak0422/divine))
+
 <div align="center">
   <h1>bundler
   <a href="https://github.com/ttak0422/bundler/actions/workflows/check.yml"><img alt="check" src="https://github.com/ttak0422/bundler/actions/workflows/check.yml/badge.svg"></a>
